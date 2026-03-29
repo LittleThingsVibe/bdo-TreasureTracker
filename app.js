@@ -1,0 +1,1332 @@
+const STORAGE_PREFIX = "bdoTreasureTracker_";
+const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v5";
+
+const treasureRegistry = {
+  ornette: {
+    id: "ornette",
+    name: "Ornette’s Spirit Essence",
+    subtitle: "Infinite HP Potion",
+    icon: "icons/ornettes-spirit-essence.webp",
+    pieces: [
+      {
+        name: "Sherekhan’s Panacea",
+        icon: "icons/sherekhans-panacea.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Sherekhan’s Panacea",
+          icon: "icons/sherekhans-panacea.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Dragon’s Fang",
+          icon: "icons/dragons-fang.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Dragon’s Roar",
+          icon: "icons/dragons-roar.webp"
+        },
+        location: "Sherekhan Necropolis",
+        mobs: "Garud, Belcadas, Nybrica, Federik, Afuaru",
+        tip: "Night rotation is stronger. Afuaru can give a high-value pity drop."
+      },
+      {
+        name: "Ron’s Tintinnabulum",
+        icon: "icons/rons-tintinnabulum.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Ron’s Tintinnabulum",
+          icon: "icons/rons-tintinnabulum.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Tranquil Tinniolium",
+          icon: "icons/tranquil-tinniolium.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Forest’s Whisper",
+          icon: "icons/forests-whisper.webp"
+        },
+        location: "Forest Ronaros / Tooth Fairy Forest",
+        mobs: "Ronaros Guardian, Ronaros Catcher, Ronaros Marksman, Ronaros Scout, Afuaru",
+        tip: "Afuaru matters here too. Keep this section updated after each grind."
+      },
+      {
+        name: "Ash Halfmoon Kagtunak",
+        icon: "icons/ash-halfmoon-kagtunak.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Ash Halfmoon Kagtunak",
+          icon: "icons/ash-halfmoon-kagtunak.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Blood Wolf’s Oath",
+          icon: "icons/blood-wolfs-oath.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Crimson Breath of Resentment",
+          icon: "icons/crimson-breath-of-resentment.webp"
+        },
+        location: "Blood Wolf Settlement",
+        mobs: "Kagtum Executioner, Kagtum Guard, Kagtum Chaser, Kagtum Raider, Blood Wolf, Afuaru",
+        tip: "This one feels best when you track pity often instead of guessing later."
+      },
+      {
+        name: "Gayak’s Courage Stone",
+        icon: "icons/gayaks-courage-stone.webp",
+        type: "crafted",
+        obtained: false,
+        material: {
+          item: "Garmoth’s Scale",
+          icon: "icons/garmoths-scale.webp",
+          current: 0,
+          required: 30
+        },
+        location: "Garmoth’s Nest / Garmoth-related content",
+        mobs: "World Boss Garmoth and related sources",
+        tip: "Track scales here. This crafted piece auto-completes when the required material amount is reached."
+      },
+      {
+        name: "Musical Spirit’s Sound Stone",
+        icon: "icons/musical-spirits-sound-stone.webp",
+        type: "crafted",
+        obtained: false,
+        material: {
+          item: "Peridot Leaf",
+          icon: "icons/peridot-leaf.webp",
+          current: 0,
+          required: 300
+        },
+        location: "Peridot Leaf exchange / related content",
+        mobs: "Exchange-based material",
+        tip: "Use this to track your leaf count instead of guessing. It auto-completes at the required amount."
+      }
+    ]
+  },
+
+  map: {
+    id: "map",
+    name: "Archaeologist’s Map",
+    subtitle: "Treasure Map",
+    icon: "icons/archaeologists-map.webp",
+    pieces: [
+      {
+        name: "Map Piece (Sulfur #1)",
+        icon: "icons/map-piece-1.webp",
+        type: "simple",
+        obtained: false,
+        location: "Roud Sulfur Mine<br>Dekhia Roud Sulfur Mine <span class='tip-accent'>(high GS alternative)</span>",
+        mobs: "Lava Tukar, Afuaru",
+        tip: "Very low drop rate. Afuaru can also drop it. Dekhia is the better high-GS option."
+      },
+      {
+        name: "Map Piece (Pila Ku #2)",
+        icon: "icons/map-piece-2.webp",
+        type: "simple",
+        obtained: false,
+        location: "Pila Ku Jail<br>Dekhia Pila Ku Jail <span class='tip-accent'>(high GS alternative)</span>",
+        mobs: "Iron Fist Warder, Afuaru",
+        tip: "Pila Ku piece. Keep it tracked separately. Dekhia is better for stronger players."
+      },
+      {
+        name: "Map Piece (Sulfur #3)",
+        icon: "icons/map-piece-3.webp",
+        type: "simple",
+        obtained: false,
+        location: "Roud Sulfur Mine<br>Dekhia Roud Sulfur Mine <span class='tip-accent'>(high GS alternative)</span>",
+        mobs: "Lava Devourer, Afuaru",
+        tip: "Second Sulfur-side piece with a different source mob. Dekhia is the better high-GS route."
+      },
+      {
+        name: "Map Piece (Pila Ku #4)",
+        icon: "icons/map-piece-4.webp",
+        type: "simple",
+        obtained: false,
+        location: "Pila Ku Jail<br>Dekhia Pila Ku Jail <span class='tip-accent'>(high GS alternative)</span>",
+        mobs: "Sordid Deportee, Gabel, Afuaru",
+        tip: "Final Pila Ku piece. Dekhia is a stronger alternative for higher GS players."
+      },
+      {
+        name: "Blood Ruby",
+        icon: "icons/blood-ruby.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Can be bought or crafted."
+      },
+      {
+        name: "Ocean Sapphire",
+        icon: "icons/ocean-sapphire.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Can be bought or crafted."
+      },
+      {
+        name: "Gold Topaz",
+        icon: "icons/gold-topaz.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Can be bought or crafted."
+      },
+      {
+        name: "Forest Emerald",
+        icon: "icons/forest-emerald.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Can be bought or crafted."
+      }
+    ]
+  },
+
+  compass: {
+    id: "compass",
+    name: "Lafi Bedmountain’s Upgraded Compass",
+    subtitle: "Treasure Compass",
+    icon: "icons/compass-full.webp",
+    pieces: [
+      {
+        name: "Vodkhan Piece",
+        icon: "icons/compass-vodkhan.webp",
+        type: "simple",
+        obtained: false,
+        location: "Hystria Ruins<br>Dekhia Hystria <span class='tip-accent'>(recommended high GS)</span>",
+        mobs: "Vodkhan, Afuaru, Vahmalkea Desert Chest, Vahmalkea Hystrah Chest, Vahmalkea Aakmah Chest",
+        tip: "Medium difficulty piece. Dekhia improves efficiency for stronger players."
+      },
+      {
+        name: "Elten Piece",
+        icon: "icons/compass-elten.webp",
+        type: "simple",
+        obtained: false,
+        location: "Hystria Ruins<br>Dekhia Hystria <span class='tip-accent'>(recommended high GS)</span>",
+        mobs: "Elten, Tukar Belten, Afuaru, Vahmalkea Desert Chest, Vahmalkea Hystrah Chest, Vahmalkea Aakmah Chest",
+        tip: "Extremely rare and usually the main bottleneck. Dekhia is strongly recommended for high-GS players."
+      },
+      {
+        name: "Aakman Piece",
+        icon: "icons/compass-aakman-piece.webp",
+        type: "simple",
+        obtained: false,
+        location: "Aakman Temple<br>Dekhia Aakman <span class='tip-accent'>(recommended high GS)</span>",
+        mobs: "Aakman Elite Guardian, Afuaru",
+        tip: "Usually the easiest of the three main compass pieces."
+      },
+      {
+        name: "Blood Ruby",
+        icon: "icons/blood-ruby.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Can be bought or crafted."
+      },
+      {
+        name: "Ocean Sapphire",
+        icon: "icons/ocean-sapphire.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Can be bought or crafted."
+      },
+      {
+        name: "Gold Topaz",
+        icon: "icons/gold-topaz.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Can be bought or crafted."
+      }
+    ]
+  },
+
+  telescope: {
+    id: "telescope",
+    name: "Lafi Bedmountain’s Upgraded Telescope",
+    subtitle: "Treasure Telescope",
+    icon: "icons/lafi-bedmountains-telescope.webp",
+    pieces: [
+      {
+        name: "Telescope Piece 1",
+        icon: "icons/telescope-piece-1.webp",
+        type: "simple",
+        obtained: false,
+        location: "Tungrad Ruins",
+        mobs: "Tungrad Executioner",
+        tip: "First telescope piece. Ulukita grind spot with high gear requirements."
+      },
+      {
+        name: "Telescope Piece 2",
+        icon: "icons/telescope-piece-2.webp",
+        type: "simple",
+        obtained: false,
+        location: "City of the Dead<br>Darkseeker’s Retreat",
+        mobs: "Tehmelun Elite Soldier, Mournful Darkseeker",
+        tip: "Second telescope piece. City of the Dead is the more approachable Ulukita route, while Darkseeker’s Retreat is the harder option."
+      },
+      {
+        name: "Telescope Piece 3",
+        icon: "icons/telescope-piece-3.webp",
+        type: "simple",
+        obtained: false,
+        location: "Tungrad Ruins<br>City of the Dead<br>Darkseeker’s Retreat<br>Hystria Ruins <span class='tip-accent'>(3x Vodkhan piece exchange)</span>",
+        mobs: "Tungrad Executioner, Tehmelun Elite Soldier, Mournful Darkseeker, or exchange 3x Vodkhan pieces",
+        tip: "Third telescope piece. This is the shared crossover piece and can also be obtained by exchanging 3 Vodkhan compass pieces."
+      },
+      {
+        name: "Star Diamond",
+        icon: "icons/star-diamond.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Craft with processing or buy from the Central Market."
+      },
+      {
+        name: "Gold Topaz",
+        icon: "icons/gold-topaz.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Craft with processing or buy from the Central Market."
+      }
+    ]
+  },
+
+  ring: {
+    id: "ring",
+    name: "Rich Merchant’s Ring",
+    subtitle: "Treasure Ring",
+    icon: "icons/rich-merchant-ring.webp",
+    pieces: [
+      {
+        name: "Ring Piece One",
+        icon: "icons/ring-piece-one.webp",
+        type: "simple",
+        obtained: false,
+        location: "Padix Island",
+        mobs: "Padix Pirate",
+        tip: "One of the core Rich Merchant’s Ring pieces."
+      },
+      {
+        name: "Ring Piece Two",
+        icon: "icons/ring-piece-two.webp",
+        type: "simple",
+        obtained: false,
+        location: "Sycraia Underwater Ruins",
+        mobs: "Sycraia monsters",
+        tip: "Sycraia ring piece. Keep it separate from your normal treasure grinds."
+      },
+      {
+        name: "Ring Piece Three",
+        icon: "icons/ring-piece-three.webp",
+        type: "simple",
+        obtained: false,
+        location: "Ash Forest",
+        mobs: "Ash Forest monsters",
+        tip: "One of the more painful endgame ring spots."
+      },
+      {
+        name: "Ring Piece Four",
+        icon: "icons/ring-piece-four.webp",
+        type: "simple",
+        obtained: false,
+        location: "Crypt of Resting Thoughts",
+        mobs: "Crypt monsters",
+        tip: "Endgame piece from Crypt."
+      },
+      {
+        name: "Ring Piece Five",
+        icon: "icons/ring-piece-five.webp",
+        type: "simple",
+        obtained: false,
+        location: "Olun’s Valley<br>Dekhia Olun’s Valley <span class='tip-accent'>(high GS alternative)</span>",
+        mobs: "Olun monsters",
+        tip: "Party/endgame ring piece. Dekhia is the premium route for stronger players."
+      },
+      {
+        name: "Blue Coral",
+        icon: "icons/blue-coral.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Support material for the final combination."
+      },
+      {
+        name: "Red Coral",
+        icon: "icons/red-coral.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Support material for the final combination."
+      },
+      {
+        name: "Rough Ruby",
+        icon: "icons/rough-ruby.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Base ruby material."
+      },
+      {
+        name: "Ruby",
+        icon: "icons/ruby.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Processed from Rough Ruby or bought directly."
+      },
+      {
+        name: "Resplendent Ruby",
+        icon: "icons/resplendent-ruby.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Processed support material for the ring."
+      },
+      {
+        name: "Rough Sapphire",
+        icon: "icons/rough-sapphire.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Base sapphire material."
+      },
+      {
+        name: "Sapphire",
+        icon: "icons/sapphire.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Processed from Rough Sapphire or bought directly."
+      },
+      {
+        name: "Resplendent Sapphire",
+        icon: "icons/resplendent-sapphire.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Processed support material for the ring."
+      },
+      {
+        name: "Resplendent Topaz",
+        icon: "icons/resplendent-topaz.webp",
+        type: "simple",
+        obtained: false,
+        location: "Craft / Market",
+        mobs: "-",
+        tip: "Final support material for the ring combination."
+      }
+    ]
+  },
+
+  odore: {
+    id: "odore",
+    name: "Odore’s Spirit Essence",
+    subtitle: "Infinite MP Potion",
+    icon: "icons/odores-spirit-essence.webp",
+    pieces: [
+      {
+        name: "Narc’s Crimson Tear",
+        icon: "icons/narcs-tear.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Narc’s Crimson Tear",
+          icon: "icons/narcs-tear.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Narc’s Solace",
+          icon: "icons/narcs-solace.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Narc’s Tear",
+          icon: "icons/narcs-tear.webp"
+        },
+        location: "Manshaum Forest",
+        mobs: "Manshaum Shaman, Manshaum Warrior, Manshaum Great Warrior, Manshaum Hunter, Manshaum Fighter, Afuaru",
+        tip: "Main drop or pity route. Afuaru can also matter here."
+      },
+      {
+        name: "Markthanan’s Gland",
+        icon: "icons/markthanans-gland.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Markthanan’s Gland",
+          icon: "icons/markthanans-gland.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Katzvariak’s Venom",
+          icon: "icons/katzvariaks-venom.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Markthanan’s Greed",
+          icon: "icons/markthanans-greed.webp"
+        },
+        location: "Tshira Ruins",
+        mobs: "Leaf Keeper, Grove Keeper, Vine Keeper, Leaf Spider, Murky Swamp Caller, Swamp Imp Bronk, Tree Ghost Spider, Tree Hermit, Kvariak, Afuaru",
+        tip: "Track venom carefully. This one is easier when updated often."
+      },
+      {
+        name: "Valtarra’s Clairvoyance",
+        icon: "icons/valtarras-clairvoyance.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Valtarra’s Clairvoyance",
+          icon: "icons/valtarras-clairvoyance.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Valtarra’s Memory",
+          icon: "icons/valtarras-memory.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Valtarra’s Nail",
+          icon: "icons/valtarras-nail.webp"
+        },
+        location: "Navarn Steppe",
+        mobs: "Ferrica, Ferrina, Belladonna Elephant, Belladonna Elephant Baby, Afuaru",
+        tip: "Tanning piece. Keep pity updated cleanly instead of backfilling later."
+      },
+      {
+        name: "Krogdalo’s Protection Stone",
+        icon: "icons/krogdalos-protection-stone.webp",
+        type: "crafted",
+        obtained: false,
+        material: {
+          item: "Rumbling Earth Shard",
+          icon: "icons/rumbling-earth-shard.webp",
+          current: 0,
+          required: 100
+        },
+        location: "Krogdalo’s Trace, Kamasylvia",
+        mobs: "Exchange-based material",
+        tip: "Bring 100 Rumbling Earth Shards to Krogdalo’s Trace."
+      },
+      {
+        name: "Night Crow’s Dawn Stone",
+        icon: "icons/night-crows-dawn-stone.webp",
+        type: "crafted",
+        obtained: false,
+        material: {
+          item: "Dragon Scale Fossil",
+          icon: "icons/dragon-scale-fossil.webp",
+          current: 0,
+          required: 100
+        },
+        location: "Ominous Altar, Garmoth’s Nest",
+        mobs: "Exchange-based material",
+        tip: "Bring 100 Dragon Scale Fossils to the Ominous Altar."
+      }
+    ]
+  },
+
+  krogdalo: {
+  id: "krogdalo",
+  name: "Krogdalo’s Sanctuary",
+  subtitle: "Mythical Horse Treasure",
+  icon: "icons/krogdalo-icon.webp",
+  pieces: [
+    {
+      name: "Mythical Arduanatt",
+      icon: "icons/horse-arduanatt.webp",
+      type: "simple",
+      obtained: false,
+      location: "Mythical Awakening",
+      mobs: "-",
+      tip: "Obtain Mythical Arduanatt (T10 Pegasus)."
+    },
+    {
+      name: "Mythical Diné",
+      icon: "icons/horse-dine.webp",
+      type: "simple",
+      obtained: false,
+      location: "Mythical Awakening",
+      mobs: "-",
+      tip: "Obtain Mythical Diné (T10 Unicorn)."
+    },
+    {
+      name: "Mythical Doom",
+      icon: "icons/horse-doom.webp",
+      type: "simple",
+      obtained: false,
+      location: "Mythical Awakening",
+      mobs: "-",
+      tip: "Obtain Mythical Doom (T10 Hell Horse)."
+    }
+  ]
+},
+};
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getStorageKey(treasureId) {
+  return `${STORAGE_PREFIX}${treasureId}_v11`;
+}
+
+function getTreasureIds() {
+  return Object.keys(treasureRegistry);
+}
+
+function getDefaultTreasureData(treasureId) {
+  return deepClone(treasureRegistry[treasureId]);
+}
+
+function normalizeLoadedData(treasureId, parsed) {
+  const fallback = getDefaultTreasureData(treasureId);
+
+  if (!parsed || !Array.isArray(parsed.pieces)) {
+    return fallback;
+  }
+
+  if (typeof parsed.name !== "string" || typeof parsed.subtitle !== "string") {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+function loadTreasureData(treasureId) {
+  try {
+    const raw = localStorage.getItem(getStorageKey(treasureId));
+    if (!raw) return getDefaultTreasureData(treasureId);
+
+    const parsed = JSON.parse(raw);
+    return normalizeLoadedData(treasureId, parsed);
+  } catch (error) {
+    console.error(`Failed to load saved progress for ${treasureId}:`, error);
+    return getDefaultTreasureData(treasureId);
+  }
+}
+
+function saveTreasureData(treasureId, treasureData) {
+  localStorage.setItem(getStorageKey(treasureId), JSON.stringify(treasureData));
+}
+
+function loadPanelState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PANEL_STATE_KEY));
+    if (saved && typeof saved === "object") return saved;
+  } catch (error) {
+    console.error("Failed to load panel state:", error);
+  }
+
+  return {
+    ornette: true,
+    map: false,
+    compass: false,
+    telescope: false,
+    ring: false,
+    odore: false,
+    krogdalo: false
+  };
+}
+
+function savePanelState(state) {
+  localStorage.setItem(PANEL_STATE_KEY, JSON.stringify(state));
+}
+
+const treasureGrid = document.getElementById("treasureGrid");
+const treasureState = {};
+const panelState = loadPanelState();
+
+getTreasureIds().forEach((treasureId) => {
+  treasureState[treasureId] = loadTreasureData(treasureId);
+
+  if (typeof panelState[treasureId] !== "boolean") {
+    panelState[treasureId] = false;
+  }
+});
+
+function isGrindPieceComplete(piece) {
+  return piece.fullDrop.obtained || piece.pity.current >= piece.pity.max;
+}
+
+function isCraftedPieceComplete(piece) {
+  return !!piece.obtained || piece.material.current >= piece.material.required;
+}
+
+function isSimplePieceComplete(piece) {
+  return !!piece.obtained;
+}
+
+function isPieceComplete(piece) {
+  if (piece.type === "grind") return isGrindPieceComplete(piece);
+  if (piece.type === "crafted") return isCraftedPieceComplete(piece);
+  if (piece.type === "simple") return isSimplePieceComplete(piece);
+  return false;
+}
+
+function isSimpleTreasure(treasureData) {
+  return treasureData.pieces.every((piece) => piece.type === "simple");
+}
+
+function getTreasureTypeLabel(treasureData) {
+  const types = new Set(treasureData.pieces.map((piece) => piece.type));
+
+  if (types.size === 1 && types.has("simple")) return "Drop Collection";
+  if (types.size === 1 && types.has("grind")) return "Grind Progress";
+  if (types.size === 1 && types.has("crafted")) return "Crafted Progress";
+  if (types.has("grind") && types.has("crafted")) return "Grind + Crafted";
+  if (types.has("grind") && types.has("simple")) return "Grind + Drops";
+  if (types.has("crafted") && types.has("simple")) return "Craft + Drops";
+  return "Treasure Assembly";
+}
+
+function calculateOverallProgress(treasureData) {
+  const total = treasureData.pieces.length;
+  const completed = treasureData.pieces.filter(isPieceComplete).length;
+  const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+  return { total, completed, percent };
+}
+
+function createTooltip(piece) {
+  const tooltip = document.createElement("div");
+  tooltip.className = "tooltip";
+
+  tooltip.innerHTML = `
+    <div class="tip-title">${piece.name}</div>
+    <div class="tip-row">📍 <strong>Location:</strong> ${piece.location || "Unknown"}</div>
+    <div class="tip-row">👾 <strong>Mobs:</strong> ${piece.mobs || "Unknown"}</div>
+    <div class="tip-row">💡 <strong>Tip:</strong> ${piece.tip || "No tip yet"}</div>
+  `;
+
+  return tooltip;
+}
+
+function closeAllTooltips() {
+  document.querySelectorAll(".tooltip").forEach((tooltip) => {
+    tooltip.style.display = "none";
+  });
+}
+
+function createPieceBadge(text, extraClass = "") {
+  const badge = document.createElement("span");
+  badge.className = `piece-badge ${extraClass}`.trim();
+  badge.textContent = text;
+  return badge;
+}
+
+function createPanelPill(text, className = "") {
+  const pill = document.createElement("span");
+  pill.className = `panel-pill ${className}`.trim();
+  pill.textContent = text;
+  return pill;
+}
+
+function createChevron() {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.classList.add("panel-chevron");
+
+  const polyline = document.createElementNS(svgNS, "polyline");
+  polyline.setAttribute("points", "6 9 12 15 18 9");
+  svg.appendChild(polyline);
+
+  return svg;
+}
+
+function createIcon(src, alt, className = "icon") {
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = alt || "";
+  img.className = className;
+  img.loading = "lazy";
+  return img;
+}
+
+function createInlineIconLabel(iconPath, labelHTML) {
+  const wrapper = document.createElement("span");
+  wrapper.className = "inline-icon-label";
+
+  if (iconPath) {
+    wrapper.appendChild(createIcon(iconPath, "", "icon small"));
+  }
+
+  const text = document.createElement("span");
+  text.innerHTML = labelHTML;
+  wrapper.appendChild(text);
+
+  return wrapper;
+}
+
+function attachTooltipHandlers(help, tooltip) {
+  help.addEventListener("mouseenter", () => {
+    if (window.innerWidth <= 760) return;
+    tooltip.style.display = "block";
+  });
+
+  help.addEventListener("mouseleave", () => {
+    if (window.innerWidth <= 760) return;
+    tooltip.style.display = "none";
+  });
+
+  help.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isVisible = tooltip.style.display === "block";
+    closeAllTooltips();
+    tooltip.style.display = isVisible ? "none" : "block";
+  });
+}
+
+function createSimplePiece(piece, treasureId, onUpdate) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "piece";
+
+  const isKrogdalo = treasureId === "krogdalo";
+
+  const header = document.createElement("div");
+  header.className = "piece-title";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "checkbox";
+  checkbox.checked = !!piece.obtained;
+
+  const titleText = document.createElement("span");
+  titleText.className = "piece-name";
+  titleText.textContent = piece.name;
+
+  const badge = createPieceBadge("Simple", "simple");
+
+  header.appendChild(checkbox);
+
+  if (piece.icon) {
+    header.appendChild(createIcon(piece.icon, piece.name, isKrogdalo ? "icon krogdalo-horse-icon" : "icon large"));
+  }
+
+  header.appendChild(titleText);
+  header.appendChild(badge);
+  wrapper.appendChild(header);
+
+  if (!isKrogdalo) {
+    const noteRow = document.createElement("div");
+    noteRow.className = "sub simple-note";
+    noteRow.innerHTML = `<strong>Status:</strong> Pure drop / milestone item. Check when obtained.`;
+    wrapper.appendChild(noteRow);
+
+    const tooltip = createTooltip(piece);
+    wrapper.appendChild(tooltip);
+
+    const helpRow = document.createElement("div");
+    helpRow.className = "sub";
+
+    const help = document.createElement("span");
+    help.className = "help";
+    help.textContent = "i";
+
+    helpRow.appendChild(help);
+    helpRow.appendChild(document.createTextNode("Item details"));
+    wrapper.appendChild(helpRow);
+
+    attachTooltipHandlers(help, tooltip);
+  }
+
+  function updateState() {
+    wrapper.classList.toggle("completed-piece", !!piece.obtained);
+  }
+
+  checkbox.addEventListener("change", () => {
+    piece.obtained = checkbox.checked;
+    updateState();
+    saveTreasureData(treasureId, treasureState[treasureId]);
+    onUpdate();
+  });
+
+  updateState();
+
+  return wrapper;
+}
+
+function createGrindPiece(piece, treasureId, onUpdate) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "piece";
+
+  const header = document.createElement("div");
+  header.className = "piece-title";
+
+  const mainCheckbox = document.createElement("input");
+  mainCheckbox.type = "checkbox";
+  mainCheckbox.className = "checkbox";
+  mainCheckbox.disabled = true;
+
+  const titleText = document.createElement("span");
+  titleText.className = "piece-name";
+  titleText.textContent = piece.name;
+
+  header.appendChild(mainCheckbox);
+
+  if (piece.icon) {
+    header.appendChild(createIcon(piece.icon, piece.name, "icon large"));
+  }
+
+  header.appendChild(titleText);
+  wrapper.appendChild(header);
+
+  const fullDropRow = document.createElement("div");
+  fullDropRow.className = "sub";
+
+  const fullDropCheckbox = document.createElement("input");
+  fullDropCheckbox.type = "checkbox";
+  fullDropCheckbox.className = "checkbox";
+  fullDropCheckbox.checked = !!piece.fullDrop.obtained;
+
+  fullDropRow.appendChild(fullDropCheckbox);
+  fullDropRow.appendChild(
+    createInlineIconLabel(
+      piece.fullDrop.icon,
+      `<strong>Full Drop:</strong> ${piece.fullDrop.item}`
+    )
+  );
+  wrapper.appendChild(fullDropRow);
+
+  const pityRow = document.createElement("div");
+  pityRow.className = "sub pity-row";
+
+  const pityLabel = createInlineIconLabel(
+    piece.pity.icon,
+    `<strong>${piece.pity.item}</strong>`
+  );
+
+  const pityInput = document.createElement("input");
+  pityInput.type = "number";
+  pityInput.min = "0";
+  pityInput.max = String(piece.pity.max);
+  pityInput.value = piece.pity.current;
+  pityInput.className = "pity-input";
+
+  const pityMax = document.createElement("span");
+  pityMax.textContent = `/ ${piece.pity.max}`;
+
+  const help = document.createElement("span");
+  help.className = "help";
+  help.textContent = "i";
+
+  pityRow.appendChild(pityLabel);
+  pityRow.appendChild(pityInput);
+  pityRow.appendChild(pityMax);
+  pityRow.appendChild(help);
+  wrapper.appendChild(pityRow);
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+
+  const fill = document.createElement("div");
+  fill.className = "fill";
+  bar.appendChild(fill);
+  wrapper.appendChild(bar);
+
+  const exchangeRow = document.createElement("div");
+  exchangeRow.className = "sub exchange-row";
+  exchangeRow.appendChild(
+    createInlineIconLabel(
+      piece.exchange.icon,
+      `<strong>Exchange Item:</strong> ${piece.exchange.item}`
+    )
+  );
+  wrapper.appendChild(exchangeRow);
+
+  const tooltip = createTooltip(piece);
+  wrapper.appendChild(tooltip);
+
+  function updatePieceState() {
+    if (piece.pity.current >= piece.pity.max) {
+      piece.pity.current = piece.pity.max;
+      pityInput.value = piece.pity.max;
+    }
+
+    const completed = isGrindPieceComplete(piece);
+    mainCheckbox.checked = completed;
+    fullDropCheckbox.checked = !!piece.fullDrop.obtained;
+    wrapper.classList.toggle("completed-piece", completed);
+    fill.style.width = `${(piece.pity.current / piece.pity.max) * 100}%`;
+  }
+
+  function persistAndRefresh() {
+    saveTreasureData(treasureId, treasureState[treasureId]);
+    onUpdate();
+  }
+
+  fullDropCheckbox.addEventListener("change", () => {
+    piece.fullDrop.obtained = fullDropCheckbox.checked;
+    updatePieceState();
+    persistAndRefresh();
+  });
+
+  pityInput.addEventListener("input", () => {
+    const raw = Number(pityInput.value);
+    const safeValue = clamp(Number.isNaN(raw) ? 0 : raw, 0, piece.pity.max);
+
+    piece.pity.current = safeValue;
+    pityInput.value = safeValue;
+
+    updatePieceState();
+    persistAndRefresh();
+  });
+
+  attachTooltipHandlers(help, tooltip);
+  updatePieceState();
+
+  return wrapper;
+}
+
+function createCraftedPiece(piece, treasureId, onUpdate) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "piece";
+
+  const header = document.createElement("div");
+  header.className = "piece-title";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "checkbox";
+  checkbox.checked = !!piece.obtained;
+
+  const titleText = document.createElement("span");
+  titleText.className = "piece-name";
+  titleText.textContent = piece.name;
+
+  const badge = createPieceBadge("Crafted", "crafted");
+
+  header.appendChild(checkbox);
+
+  if (piece.icon) {
+    header.appendChild(createIcon(piece.icon, piece.name, "icon large"));
+  }
+
+  header.appendChild(titleText);
+  header.appendChild(badge);
+  wrapper.appendChild(header);
+
+  const materialRow = document.createElement("div");
+  materialRow.className = "sub material-row";
+  materialRow.appendChild(
+    createInlineIconLabel(
+      piece.material.icon,
+      `<strong>Material:</strong> ${piece.material.item}`
+    )
+  );
+  wrapper.appendChild(materialRow);
+
+  const materialProgressRow = document.createElement("div");
+  materialProgressRow.className = "sub material-progress-row";
+
+  const materialLabel = document.createElement("span");
+  materialLabel.innerHTML = `<strong>Progress</strong>`;
+
+  const materialInput = document.createElement("input");
+  materialInput.type = "number";
+  materialInput.min = "0";
+  materialInput.max = String(piece.material.required);
+  materialInput.value = piece.material.current;
+  materialInput.className = "material-input";
+
+  const materialRequired = document.createElement("span");
+  materialRequired.textContent = `/ ${piece.material.required}`;
+
+  const help = document.createElement("span");
+  help.className = "help";
+  help.textContent = "i";
+
+  materialProgressRow.appendChild(materialLabel);
+  materialProgressRow.appendChild(materialInput);
+  materialProgressRow.appendChild(materialRequired);
+  materialProgressRow.appendChild(help);
+  wrapper.appendChild(materialProgressRow);
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+
+  const fill = document.createElement("div");
+  fill.className = "fill";
+  bar.appendChild(fill);
+  wrapper.appendChild(bar);
+
+  const noteRow = document.createElement("div");
+  noteRow.className = "sub crafted-note";
+  noteRow.innerHTML = `<strong>Status:</strong> Auto-completes at required material count, or can be checked manually.`;
+  wrapper.appendChild(noteRow);
+
+  const tooltip = createTooltip(piece);
+  wrapper.appendChild(tooltip);
+
+  function updatePieceState() {
+    if (piece.material.current >= piece.material.required) {
+      piece.material.current = piece.material.required;
+      piece.obtained = true;
+    }
+
+    if (!piece.obtained && piece.material.current < piece.material.required) {
+      checkbox.checked = false;
+    } else {
+      checkbox.checked = !!piece.obtained;
+    }
+
+    materialInput.value = piece.material.current;
+    wrapper.classList.toggle("completed-piece", isCraftedPieceComplete(piece));
+    fill.style.width = `${(piece.material.current / piece.material.required) * 100}%`;
+  }
+
+  function persistAndRefresh() {
+    saveTreasureData(treasureId, treasureState[treasureId]);
+    onUpdate();
+  }
+
+  checkbox.addEventListener("change", () => {
+    piece.obtained = checkbox.checked;
+    updatePieceState();
+    persistAndRefresh();
+  });
+
+  materialInput.addEventListener("input", () => {
+    const raw = Number(materialInput.value);
+    const safeValue = clamp(Number.isNaN(raw) ? 0 : raw, 0, piece.material.required);
+
+    piece.material.current = safeValue;
+
+    if (piece.material.current >= piece.material.required) {
+      piece.obtained = true;
+    } else if (!checkbox.checked) {
+      piece.obtained = false;
+    }
+
+    updatePieceState();
+    persistAndRefresh();
+  });
+
+  attachTooltipHandlers(help, tooltip);
+  updatePieceState();
+
+  return wrapper;
+}
+
+function createTreasurePanel(treasureId) {
+  const treasureData = treasureState[treasureId];
+  const panel = document.createElement("section");
+  panel.className = `treasure-panel treasure-${treasureId}`;
+
+  if (isSimpleTreasure(treasureData)) {
+    panel.classList.add("simple-layout");
+  }
+
+  if (!panelState[treasureId]) {
+    panel.classList.add("collapsed");
+  }
+
+  const panelTop = document.createElement("div");
+  panelTop.className = "panel-top";
+
+  const left = document.createElement("div");
+  left.className = "panel-top-left";
+
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "eyebrow";
+  eyebrow.textContent = "Treasure Progress";
+
+  const titleRow = document.createElement("div");
+  titleRow.className = "panel-title-row";
+
+  const titleGroup = document.createElement("div");
+  titleGroup.className = "panel-title-group";
+
+  titleGroup.appendChild(createChevron());
+
+  if (treasureData.icon) {
+    titleGroup.appendChild(createIcon(treasureData.icon, treasureData.name, "icon panel-icon"));
+  }
+
+  const titleMain = document.createElement("div");
+  titleMain.className = "panel-title-main";
+
+  const title = document.createElement("h2");
+  title.textContent = treasureData.name;
+
+  const metaRow = document.createElement("div");
+  metaRow.className = "panel-meta-row";
+
+  const typePill = createPanelPill(getTreasureTypeLabel(treasureData), "type");
+  const countPill = createPanelPill(`${treasureData.pieces.length} pieces`, "count");
+
+  metaRow.appendChild(typePill);
+  metaRow.appendChild(countPill);
+
+  titleMain.appendChild(title);
+  titleMain.appendChild(metaRow);
+
+  titleGroup.appendChild(titleMain);
+  titleRow.appendChild(titleGroup);
+
+  const subtitle = document.createElement("p");
+  subtitle.className = "panel-subtitle";
+  subtitle.textContent = treasureData.subtitle;
+
+  left.appendChild(eyebrow);
+  left.appendChild(titleRow);
+  left.appendChild(subtitle);
+
+  const actions = document.createElement("div");
+  actions.className = "panel-actions";
+
+  const overallBox = document.createElement("div");
+  overallBox.className = "overall-box";
+
+  const overallLabel = document.createElement("span");
+  overallLabel.className = "overall-label";
+  overallLabel.textContent = "Overall";
+
+  const overallValue = document.createElement("span");
+  overallValue.className = "overall-value";
+
+  const overallCount = document.createElement("span");
+  overallCount.className = "overall-count";
+
+  overallBox.appendChild(overallLabel);
+  overallBox.appendChild(overallValue);
+  overallBox.appendChild(overallCount);
+
+  const resetButton = document.createElement("button");
+  resetButton.type = "button";
+  resetButton.className = "ghost-btn";
+  resetButton.textContent = "Reset Progress";
+
+  actions.appendChild(overallBox);
+  actions.appendChild(resetButton);
+
+  panelTop.appendChild(left);
+  panelTop.appendChild(actions);
+  panel.appendChild(panelTop);
+
+  const overallBar = document.createElement("div");
+  overallBar.className = "overall-bar";
+
+  const overallFill = document.createElement("div");
+  overallFill.className = "overall-fill";
+  overallBar.appendChild(overallFill);
+  panel.appendChild(overallBar);
+
+  const tree = document.createElement("section");
+  tree.className = "tree";
+  panel.appendChild(tree);
+
+  function updateOverallUI() {
+    const { total, completed, percent } = calculateOverallProgress(treasureData);
+    overallValue.textContent = `${percent}%`;
+    overallCount.textContent = `${completed} / ${total} completed`;
+    overallFill.style.width = `${percent}%`;
+  }
+
+  function rerenderTree() {
+    tree.innerHTML = "";
+
+    treasureData.pieces.forEach((piece) => {
+      if (piece.type === "grind") {
+        tree.appendChild(createGrindPiece(piece, treasureId, updateOverallUI));
+      } else if (piece.type === "crafted") {
+        tree.appendChild(createCraftedPiece(piece, treasureId, updateOverallUI));
+      } else if (piece.type === "simple") {
+        tree.appendChild(createSimplePiece(piece, treasureId, updateOverallUI));
+      }
+    });
+
+    updateOverallUI();
+  }
+
+  panelTop.addEventListener("click", (event) => {
+    if (event.target.closest("button")) return;
+    if (event.target.closest(".help")) return;
+    if (event.target.closest("input")) return;
+
+    const isCurrentlyCollapsed = panel.classList.contains("collapsed");
+
+    document.querySelectorAll(".treasure-panel").forEach((p) => {
+      p.classList.add("collapsed");
+    });
+
+    Object.keys(panelState).forEach((key) => {
+      panelState[key] = false;
+    });
+
+    if (isCurrentlyCollapsed) {
+      panel.classList.remove("collapsed");
+      panelState[treasureId] = true;
+    }
+
+    savePanelState(panelState);
+  });
+
+  resetButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    const confirmed = window.confirm(`Reset all saved progress for ${treasureData.name}?`);
+    if (!confirmed) return;
+
+    localStorage.removeItem(getStorageKey(treasureId));
+    treasureState[treasureId] = getDefaultTreasureData(treasureId);
+
+    const freshPanel = createTreasurePanel(treasureId);
+    panel.replaceWith(freshPanel);
+  });
+
+  rerenderTree();
+
+  return panel;
+}
+
+function renderAllTreasures() {
+  treasureGrid.innerHTML = "";
+
+  getTreasureIds().forEach((treasureId) => {
+    treasureGrid.appendChild(createTreasurePanel(treasureId));
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (!event.target.classList.contains("help")) {
+    closeAllTooltips();
+  }
+});
+
+renderAllTreasures();

@@ -139,6 +139,14 @@ body::after {
   font-size: 1rem;
 }
 
+.seo-intro {
+  max-width: 980px;
+  margin: 14px 0 0;
+  color: var(--soft);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
 .treasure-grid {
   display: grid;
   grid-template-columns: 1fr;

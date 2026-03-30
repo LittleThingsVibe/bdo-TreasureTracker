@@ -1,5 +1,5 @@
 const STORAGE_PREFIX = "bdoTreasureTracker_";
-const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v5";
+const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v6";
 
 const treasureRegistry = {
   ornette: {
@@ -7,6 +7,10 @@ const treasureRegistry = {
     name: "Ornette’s Spirit Essence",
     subtitle: "Infinite HP Potion",
     icon: "icons/ornettes-spirit-essence.webp",
+    combine: {
+      image: "assets/combi-hp.png",
+      text: "Arrange the required pieces in your inventory."
+    },
     pieces: [
       {
         name: "Sherekhan’s Panacea",
@@ -110,11 +114,127 @@ const treasureRegistry = {
     ]
   },
 
+  odore: {
+    id: "odore",
+    name: "Odore’s Spirit Essence",
+    subtitle: "Infinite MP Potion",
+    icon: "icons/odores-spirit-essence.webp",
+    combine: {
+      image: "assets/combi-mp.png",
+      text: "Arrange the required pieces in your inventory."
+    },
+    pieces: [
+      {
+        name: "Narc’s Crimson Tear",
+        icon: "icons/narcs-tear.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Narc’s Crimson Tear",
+          icon: "icons/narcs-tear.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Narc’s Solace",
+          icon: "icons/narcs-solace.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Narc’s Tear",
+          icon: "icons/narcs-tear.webp"
+        },
+        location: "Manshaum Forest",
+        mobs: "Manshaum Shaman, Manshaum Warrior, Manshaum Great Warrior, Manshaum Hunter, Manshaum Fighter, Afuaru",
+        tip: "Main drop or pity route. Afuaru can also matter here."
+      },
+      {
+        name: "Markthanan’s Gland",
+        icon: "icons/markthanans-gland.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Markthanan’s Gland",
+          icon: "icons/markthanans-gland.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Katzvariak’s Venom",
+          icon: "icons/katzvariaks-venom.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Markthanan’s Greed",
+          icon: "icons/markthanans-greed.webp"
+        },
+        location: "Tshira Ruins",
+        mobs: "Leaf Keeper, Grove Keeper, Vine Keeper, Leaf Spider, Murky Swamp Caller, Swamp Imp Bronk, Tree Ghost Spider, Tree Hermit, Kvariak, Afuaru",
+        tip: "Track venom carefully. This one is easier when updated often."
+      },
+      {
+        name: "Valtarra’s Clairvoyance",
+        icon: "icons/valtarras-clairvoyance.webp",
+        type: "grind",
+        fullDrop: {
+          item: "Valtarra’s Clairvoyance",
+          icon: "icons/valtarras-clairvoyance.webp",
+          obtained: false
+        },
+        pity: {
+          item: "Valtarra’s Memory",
+          icon: "icons/valtarras-memory.webp",
+          current: 0,
+          max: 100
+        },
+        exchange: {
+          item: "Valtarra’s Nail",
+          icon: "icons/valtarras-nail.webp"
+        },
+        location: "Navarn Steppe",
+        mobs: "Ferrica, Ferrina, Belladonna Elephant, Belladonna Elephant Baby, Afuaru",
+        tip: "Tanning piece. Keep pity updated cleanly instead of backfilling later."
+      },
+      {
+        name: "Krogdalo’s Protection Stone",
+        icon: "icons/krogdalos-protection-stone.webp",
+        type: "crafted",
+        obtained: false,
+        material: {
+          item: "Rumbling Earth Shard",
+          icon: "icons/rumbling-earth-shard.webp",
+          current: 0,
+          required: 100
+        },
+        location: "Krogdalo’s Trace, Kamasylvia",
+        mobs: "Exchange-based material",
+        tip: "Bring 100 Rumbling Earth Shards to Krogdalo’s Trace."
+      },
+      {
+        name: "Night Crow’s Dawn Stone",
+        icon: "icons/night-crows-dawn-stone.webp",
+        type: "crafted",
+        obtained: false,
+        material: {
+          item: "Dragon Scale Fossil",
+          icon: "icons/dragon-scale-fossil.webp",
+          current: 0,
+          required: 100
+        },
+        location: "Ominous Altar, Garmoth’s Nest",
+        mobs: "Exchange-based material",
+        tip: "Bring 100 Dragon Scale Fossils to the Ominous Altar."
+      }
+    ]
+  },
+
   map: {
     id: "map",
     name: "Archaeologist’s Map",
     subtitle: "Treasure Map",
     icon: "icons/archaeologists-map.webp",
+    combine: {
+      image: "assets/combi-map.png",
+      text: "Arrange the required pieces in your inventory."
+    },
     pieces: [
       {
         name: "Map Piece (Sulfur #1)",
@@ -196,6 +316,10 @@ const treasureRegistry = {
     name: "Lafi Bedmountain’s Upgraded Compass",
     subtitle: "Treasure Compass",
     icon: "icons/compass-full.webp",
+    combine: {
+      image: "assets/combi-compass.png",
+      text: "Arrange the required pieces in your inventory."
+    },
     pieces: [
       {
         name: "Vodkhan Piece",
@@ -259,6 +383,10 @@ const treasureRegistry = {
     name: "Lafi Bedmountain’s Upgraded Telescope",
     subtitle: "Treasure Telescope",
     icon: "icons/lafi-bedmountains-telescope.webp",
+    combine: {
+      image: "assets/combi-telescope.png",
+      text: "Arrange the required pieces in your inventory."
+    },
     pieces: [
       {
         name: "Telescope Piece 1",
@@ -313,6 +441,10 @@ const treasureRegistry = {
     name: "Rich Merchant’s Ring",
     subtitle: "Treasure Ring",
     icon: "icons/rich-merchant-ring.webp",
+    combine: {
+      image: "assets/combi-ring.png",
+      text: "Arrange the required pieces in your inventory."
+    },
     pieces: [
       {
         name: "Ring Piece One",
@@ -443,149 +575,41 @@ const treasureRegistry = {
     ]
   },
 
-  odore: {
-    id: "odore",
-    name: "Odore’s Spirit Essence",
-    subtitle: "Infinite MP Potion",
-    icon: "icons/odores-spirit-essence.webp",
+  krogdalo: {
+    id: "krogdalo",
+    name: "Krogdalo’s Sanctuary",
+    subtitle: "Mythical Horse Treasure",
+    icon: "icons/krogdalo-icon.webp",
     pieces: [
       {
-        name: "Narc’s Crimson Tear",
-        icon: "icons/narcs-tear.webp",
-        type: "grind",
-        fullDrop: {
-          item: "Narc’s Crimson Tear",
-          icon: "icons/narcs-tear.webp",
-          obtained: false
-        },
-        pity: {
-          item: "Narc’s Solace",
-          icon: "icons/narcs-solace.webp",
-          current: 0,
-          max: 100
-        },
-        exchange: {
-          item: "Narc’s Tear",
-          icon: "icons/narcs-tear.webp"
-        },
-        location: "Manshaum Forest",
-        mobs: "Manshaum Shaman, Manshaum Warrior, Manshaum Great Warrior, Manshaum Hunter, Manshaum Fighter, Afuaru",
-        tip: "Main drop or pity route. Afuaru can also matter here."
-      },
-      {
-        name: "Markthanan’s Gland",
-        icon: "icons/markthanans-gland.webp",
-        type: "grind",
-        fullDrop: {
-          item: "Markthanan’s Gland",
-          icon: "icons/markthanans-gland.webp",
-          obtained: false
-        },
-        pity: {
-          item: "Katzvariak’s Venom",
-          icon: "icons/katzvariaks-venom.webp",
-          current: 0,
-          max: 100
-        },
-        exchange: {
-          item: "Markthanan’s Greed",
-          icon: "icons/markthanans-greed.webp"
-        },
-        location: "Tshira Ruins",
-        mobs: "Leaf Keeper, Grove Keeper, Vine Keeper, Leaf Spider, Murky Swamp Caller, Swamp Imp Bronk, Tree Ghost Spider, Tree Hermit, Kvariak, Afuaru",
-        tip: "Track venom carefully. This one is easier when updated often."
-      },
-      {
-        name: "Valtarra’s Clairvoyance",
-        icon: "icons/valtarras-clairvoyance.webp",
-        type: "grind",
-        fullDrop: {
-          item: "Valtarra’s Clairvoyance",
-          icon: "icons/valtarras-clairvoyance.webp",
-          obtained: false
-        },
-        pity: {
-          item: "Valtarra’s Memory",
-          icon: "icons/valtarras-memory.webp",
-          current: 0,
-          max: 100
-        },
-        exchange: {
-          item: "Valtarra’s Nail",
-          icon: "icons/valtarras-nail.webp"
-        },
-        location: "Navarn Steppe",
-        mobs: "Ferrica, Ferrina, Belladonna Elephant, Belladonna Elephant Baby, Afuaru",
-        tip: "Tanning piece. Keep pity updated cleanly instead of backfilling later."
-      },
-      {
-        name: "Krogdalo’s Protection Stone",
-        icon: "icons/krogdalos-protection-stone.webp",
-        type: "crafted",
+        name: "Mythical Arduanatt",
+        icon: "icons/horse-arduanatt.webp",
+        type: "simple",
         obtained: false,
-        material: {
-          item: "Rumbling Earth Shard",
-          icon: "icons/rumbling-earth-shard.webp",
-          current: 0,
-          required: 100
-        },
-        location: "Krogdalo’s Trace, Kamasylvia",
-        mobs: "Exchange-based material",
-        tip: "Bring 100 Rumbling Earth Shards to Krogdalo’s Trace."
+        location: "Mythical Awakening",
+        mobs: "-",
+        tip: "Obtain Mythical Arduanatt (T10 Pegasus)."
       },
       {
-        name: "Night Crow’s Dawn Stone",
-        icon: "icons/night-crows-dawn-stone.webp",
-        type: "crafted",
+        name: "Mythical Diné",
+        icon: "icons/horse-dine.webp",
+        type: "simple",
         obtained: false,
-        material: {
-          item: "Dragon Scale Fossil",
-          icon: "icons/dragon-scale-fossil.webp",
-          current: 0,
-          required: 100
-        },
-        location: "Ominous Altar, Garmoth’s Nest",
-        mobs: "Exchange-based material",
-        tip: "Bring 100 Dragon Scale Fossils to the Ominous Altar."
+        location: "Mythical Awakening",
+        mobs: "-",
+        tip: "Obtain Mythical Diné (T10 Unicorn)."
+      },
+      {
+        name: "Mythical Doom",
+        icon: "icons/horse-doom.webp",
+        type: "simple",
+        obtained: false,
+        location: "Mythical Awakening",
+        mobs: "-",
+        tip: "Obtain Mythical Doom (T10 Hell Horse)."
       }
     ]
-  },
-
-  krogdalo: {
-  id: "krogdalo",
-  name: "Krogdalo’s Sanctuary",
-  subtitle: "Mythical Horse Treasure",
-  icon: "icons/krogdalo-icon.webp",
-  pieces: [
-    {
-      name: "Mythical Arduanatt",
-      icon: "icons/horse-arduanatt.webp",
-      type: "simple",
-      obtained: false,
-      location: "Mythical Awakening",
-      mobs: "-",
-      tip: "Obtain Mythical Arduanatt (T10 Pegasus)."
-    },
-    {
-      name: "Mythical Diné",
-      icon: "icons/horse-dine.webp",
-      type: "simple",
-      obtained: false,
-      location: "Mythical Awakening",
-      mobs: "-",
-      tip: "Obtain Mythical Diné (T10 Unicorn)."
-    },
-    {
-      name: "Mythical Doom",
-      icon: "icons/horse-doom.webp",
-      type: "simple",
-      obtained: false,
-      location: "Mythical Awakening",
-      mobs: "-",
-      tip: "Obtain Mythical Doom (T10 Hell Horse)."
-    }
-  ]
-},
+  }
 };
 
 function deepClone(obj) {
@@ -619,6 +643,10 @@ function normalizeLoadedData(treasureId, parsed) {
     return fallback;
   }
 
+  if (!parsed.combine && fallback.combine) {
+    parsed.combine = fallback.combine;
+  }
+
   return parsed;
 }
 
@@ -648,12 +676,12 @@ function loadPanelState() {
   }
 
   return {
-    ornette: true,
+    ornette: false,
+    odore: false,
     map: false,
     compass: false,
     telescope: false,
     ring: false,
-    odore: false,
     krogdalo: false
   };
 }
@@ -737,6 +765,16 @@ function closeAllTooltips() {
   });
 }
 
+function closeAllCombineTooltips() {
+  document.querySelectorAll(".combine-help-wrap.open").forEach((wrap) => {
+    wrap.classList.remove("open");
+    const button = wrap.querySelector(".combine-help-btn");
+    if (button) {
+      button.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
 function createPieceBadge(text, extraClass = "") {
   const badge = document.createElement("span");
   badge.className = `piece-badge ${extraClass}`.trim();
@@ -810,6 +848,68 @@ function attachTooltipHandlers(help, tooltip) {
     closeAllTooltips();
     tooltip.style.display = isVisible ? "none" : "block";
   });
+}
+
+function createCombineButton(treasureData) {
+  const wrap = document.createElement("div");
+  wrap.className = "combine-help-wrap";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "combine-help-btn";
+  button.setAttribute("aria-label", `Show assembly info for ${treasureData.name}`);
+  button.setAttribute("aria-expanded", "false");
+  button.innerHTML = `<span class="combine-help-icon">⚒</span>`;
+
+  const tooltip = document.createElement("div");
+  tooltip.className = "combine-tooltip";
+
+  const combineImage = treasureData.combine?.image || "";
+  const combineText = treasureData.combine?.text || "Arrange the required pieces in your inventory.";
+
+  tooltip.innerHTML = `
+    <div class="combine-tooltip-inner">
+      ${combineImage ? `<img src="${combineImage}" alt="${treasureData.name} combine layout" class="combine-tooltip-image" loading="lazy">` : ""}
+      <p class="combine-tooltip-text">${combineText}</p>
+    </div>
+  `;
+
+  function openTooltip() {
+    closeAllCombineTooltips();
+    wrap.classList.add("open");
+    button.setAttribute("aria-expanded", "true");
+  }
+
+  function closeTooltip() {
+    wrap.classList.remove("open");
+    button.setAttribute("aria-expanded", "false");
+  }
+
+  button.addEventListener("mouseenter", () => {
+    if (window.innerWidth <= 760) return;
+    openTooltip();
+  });
+
+  wrap.addEventListener("mouseleave", () => {
+    if (window.innerWidth <= 760) return;
+    closeTooltip();
+  });
+
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isOpen = wrap.classList.contains("open");
+
+    if (isOpen) {
+      closeTooltip();
+    } else {
+      openTooltip();
+    }
+  });
+
+  wrap.appendChild(button);
+  wrap.appendChild(tooltip);
+
+  return wrap;
 }
 
 function createSimplePiece(piece, treasureId, onUpdate) {
@@ -1181,8 +1281,16 @@ function createTreasurePanel(treasureId) {
   const titleMain = document.createElement("div");
   titleMain.className = "panel-title-main";
 
+  const titleLine = document.createElement("div");
+  titleLine.className = "panel-title-line";
+
   const title = document.createElement("h2");
   title.textContent = treasureData.name;
+  titleLine.appendChild(title);
+
+  if (treasureData.combine?.image || treasureData.combine?.text) {
+    titleLine.appendChild(createCombineButton(treasureData));
+  }
 
   const metaRow = document.createElement("div");
   metaRow.className = "panel-meta-row";
@@ -1193,7 +1301,7 @@ function createTreasurePanel(treasureId) {
   metaRow.appendChild(typePill);
   metaRow.appendChild(countPill);
 
-  titleMain.appendChild(title);
+  titleMain.appendChild(titleLine);
   titleMain.appendChild(metaRow);
 
   titleGroup.appendChild(titleMain);
@@ -1277,6 +1385,7 @@ function createTreasurePanel(treasureId) {
   panelTop.addEventListener("click", (event) => {
     if (event.target.closest("button")) return;
     if (event.target.closest(".help")) return;
+    if (event.target.closest(".combine-help-wrap")) return;
     if (event.target.closest("input")) return;
 
     const isCurrentlyCollapsed = panel.classList.contains("collapsed");
@@ -1326,6 +1435,10 @@ function renderAllTreasures() {
 document.addEventListener("click", (event) => {
   if (!event.target.classList.contains("help")) {
     closeAllTooltips();
+  }
+
+  if (!event.target.closest(".combine-help-wrap")) {
+    closeAllCombineTooltips();
   }
 });
 

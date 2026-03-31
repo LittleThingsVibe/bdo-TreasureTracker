@@ -1,5 +1,6 @@
 const STORAGE_PREFIX = "bdoTreasureTracker_";
 const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v6";
+const ATANIS_STATE_KEY = "bdoTreasureTracker_atanis_v1";
 
 const treasureRegistry = {
   ornette: {
@@ -33,7 +34,8 @@ const treasureRegistry = {
         },
         location: "Sherekhan Necropolis",
         mobs: "Garud, Belcadas, Nybrica, Federik, Afuaru",
-        tip: "Night rotation is stronger. Afuaru can give a high-value pity drop."
+        tip: "Night rotation is stronger. Afuaru can give a high-value pity drop.",
+        atanisNote: "Atanis’ Element can also be exchanged for this pity item. Use the shared potion helper to plan distribution across both potion sections."
       },
       {
         name: "Ron’s Tintinnabulum",
@@ -56,7 +58,8 @@ const treasureRegistry = {
         },
         location: "Forest Ronaros / Tooth Fairy Forest",
         mobs: "Ronaros Guardian, Ronaros Catcher, Ronaros Marksman, Ronaros Scout, Afuaru",
-        tip: "Afuaru matters here too. Keep this section updated after each grind."
+        tip: "Afuaru matters here too. Keep this section updated after each grind.",
+        atanisNote: "Atanis’ Element can also be exchanged for this pity item. Use the shared potion helper to plan distribution across both potion sections."
       },
       {
         name: "Ash Halfmoon Kagtunak",
@@ -79,7 +82,8 @@ const treasureRegistry = {
         },
         location: "Blood Wolf Settlement",
         mobs: "Kagtum Executioner, Kagtum Guard, Kagtum Chaser, Kagtum Raider, Blood Wolf, Afuaru",
-        tip: "This one feels best when you track pity often instead of guessing later."
+        tip: "This one feels best when you track pity often instead of guessing later.",
+        atanisNote: "Atanis’ Element can also be exchanged for this pity item. Use the shared potion helper to plan distribution across both potion sections."
       },
       {
         name: "Gayak’s Courage Stone",
@@ -145,7 +149,8 @@ const treasureRegistry = {
         },
         location: "Manshaum Forest",
         mobs: "Manshaum Shaman, Manshaum Warrior, Manshaum Great Warrior, Manshaum Hunter, Manshaum Fighter, Afuaru",
-        tip: "Main drop or pity route. Afuaru can also matter here."
+        tip: "Main drop or pity route. Afuaru can also matter here.",
+        atanisNote: "Atanis’ Element can also be exchanged for this pity item. Use the shared potion helper to plan distribution across both potion sections."
       },
       {
         name: "Markthanan’s Gland",
@@ -168,7 +173,8 @@ const treasureRegistry = {
         },
         location: "Tshira Ruins",
         mobs: "Leaf Keeper, Grove Keeper, Vine Keeper, Leaf Spider, Murky Swamp Caller, Swamp Imp Bronk, Tree Ghost Spider, Tree Hermit, Kvariak, Afuaru",
-        tip: "Track venom carefully. This one is easier when updated often."
+        tip: "Track venom carefully. This one is easier when updated often.",
+        atanisNote: "Atanis’ Element can also be exchanged for this pity item. Use the shared potion helper to plan distribution across both potion sections."
       },
       {
         name: "Valtarra’s Clairvoyance",
@@ -191,7 +197,8 @@ const treasureRegistry = {
         },
         location: "Navarn Steppe",
         mobs: "Ferrica, Ferrina, Belladonna Elephant, Belladonna Elephant Baby, Afuaru",
-        tip: "Tanning piece. Keep pity updated cleanly instead of backfilling later."
+        tip: "Tanning piece. Keep pity updated cleanly instead of backfilling later.",
+        atanisNote: "Atanis’ Element can also be exchanged for this pity item. Use the shared potion helper to plan distribution across both potion sections."
       },
       {
         name: "Krogdalo’s Protection Stone",
@@ -690,9 +697,29 @@ function savePanelState(state) {
   localStorage.setItem(PANEL_STATE_KEY, JSON.stringify(state));
 }
 
+function loadAtanisState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ATANIS_STATE_KEY));
+    if (saved && typeof saved === "object") {
+      return {
+        total: clamp(Number(saved.total) || 0, 0, 999999)
+      };
+    }
+  } catch (error) {
+    console.error("Failed to load Atanis state:", error);
+  }
+
+  return { total: 0 };
+}
+
+function saveAtanisState(state) {
+  localStorage.setItem(ATANIS_STATE_KEY, JSON.stringify(state));
+}
+
 const treasureGrid = document.getElementById("treasureGrid");
 const treasureState = {};
 const panelState = loadPanelState();
+const atanisState = loadAtanisState();
 
 getTreasureIds().forEach((treasureId) => {
   treasureState[treasureId] = loadTreasureData(treasureId);
@@ -754,6 +781,7 @@ function createTooltip(piece) {
     <div class="tip-row">📍 <strong>Location:</strong> ${piece.location || "Unknown"}</div>
     <div class="tip-row">👾 <strong>Mobs:</strong> ${piece.mobs || "Unknown"}</div>
     <div class="tip-row">💡 <strong>Tip:</strong> ${piece.tip || "No tip yet"}</div>
+    ${piece.atanisNote ? `<div class="tip-row">✨ <strong>Atanis:</strong> ${piece.atanisNote}</div>` : ""}
   `;
 
   return tooltip;
@@ -912,6 +940,200 @@ function createCombineButton(treasureData) {
   return wrap;
 }
 
+function isPotionTreasureId(treasureId) {
+  return treasureId === "ornette" || treasureId === "odore";
+}
+
+function getAtanisEligiblePieces() {
+  const eligible = [];
+
+  ["ornette", "odore"].forEach((treasureId) => {
+    const treasureData = treasureState[treasureId];
+    if (!treasureData) return;
+
+    treasureData.pieces.forEach((piece, index) => {
+      if (piece.type !== "grind") return;
+      if (!piece.atanisNote) return;
+
+      const complete = isGrindPieceComplete(piece);
+      const remaining = Math.max(0, piece.pity.max - piece.pity.current);
+
+      eligible.push({
+        treasureId,
+        index,
+        token: `${treasureId}:${index}`,
+        piece,
+        remaining,
+        complete
+      });
+    });
+  });
+
+  return eligible;
+}
+
+function getAtanisDistribution() {
+  const total = clamp(Number(atanisState.total) || 0, 0, 999999);
+  let remainingPool = total;
+
+  const targets = getAtanisEligiblePieces()
+    .filter((entry) => !entry.complete && entry.remaining > 0)
+    .sort((a, b) => a.remaining - b.remaining);
+
+  const allocations = [];
+  const allocationMap = new Map();
+
+  targets.forEach((entry) => {
+    if (remainingPool <= 0) return;
+
+    const used = Math.min(entry.remaining, remainingPool);
+    const allocation = {
+      ...entry,
+      used,
+      completesPiece: used >= entry.remaining
+    };
+
+    allocations.push(allocation);
+    allocationMap.set(entry.token, allocation);
+    remainingPool -= used;
+  });
+
+  return {
+    total,
+    remainingPool,
+    allocations,
+    allocationMap
+  };
+}
+
+function createAtanisHelper() {
+  const helper = document.createElement("section");
+  helper.className = "atanis-helper";
+
+  const distribution = getAtanisDistribution();
+
+  helper.innerHTML = `
+    <div class="atanis-helper-head">
+      <div class="atanis-helper-copy">
+        <div class="atanis-helper-title-row">
+          <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon large atanis-helper-icon">
+          <div>
+            <h3 class="atanis-helper-title">Shared Atanis’ Element Helper</h3>
+            <p class="atanis-helper-note">
+              Enter your total Atanis pool once. The tracker suggests the most efficient distribution across both HP and MP potion pity pieces without auto-applying anything.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <label class="atanis-input-group">
+        <span class="atanis-input-label">Atanis Elements</span>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value="${distribution.total}"
+          class="atanis-total-input"
+          data-atanis-input
+        >
+      </label>
+    </div>
+
+    <div class="atanis-helper-summary">
+      ${createAtanisSummaryMarkup(distribution)}
+    </div>
+  `;
+
+  const input = helper.querySelector("[data-atanis-input]");
+  input.addEventListener("input", () => {
+    const safeValue = clamp(Number(input.value) || 0, 0, 999999);
+    atanisState.total = safeValue;
+    input.value = safeValue;
+    saveAtanisState(atanisState);
+    refreshAtanisUI();
+  });
+
+  return helper;
+}
+
+function createAtanisSummaryMarkup(distribution) {
+  if (!distribution.total) {
+    return `
+      <p class="atanis-summary-empty">
+        Add your total Atanis here to get a suggested pity distribution across both potion sections.
+      </p>
+    `;
+  }
+
+  if (!distribution.allocations.length) {
+    return `
+      <p class="atanis-summary-line">
+        Current pool: <strong>${distribution.total}</strong> Atanis’ Element
+      </p>
+      <p class="atanis-summary-empty">
+        No active HP/MP pity targets need Atanis support right now.
+      </p>
+    `;
+  }
+
+  return `
+    <p class="atanis-summary-line">
+      Current pool: <strong>${distribution.total}</strong> Atanis’ Element
+    </p>
+    <ul class="atanis-allocation-list">
+      ${distribution.allocations.map((entry) => `
+        <li class="atanis-allocation-item">
+          <div class="atanis-allocation-main">
+            <img src="${entry.piece.pity.icon}" alt="${entry.piece.pity.item}" class="icon small">
+            <span>
+              <strong>${entry.piece.pity.item}</strong>
+              <span class="atanis-allocation-meta"> — ${entry.used}/${entry.remaining} suggested</span>
+            </span>
+          </div>
+          <span class="atanis-allocation-tag ${entry.completesPiece ? "complete" : "partial"}">
+            ${entry.completesPiece ? "Complete" : `Partial +${entry.used}`}
+          </span>
+        </li>
+      `).join("")}
+    </ul>
+    <div class="atanis-summary-footer">
+      <span>Priority: smallest remaining pity gaps first.</span>
+      <span>Unused Atanis left: <strong>${distribution.remainingPool}</strong></span>
+    </div>
+  `;
+}
+
+function refreshAtanisUI() {
+  const distribution = getAtanisDistribution();
+
+  document.querySelectorAll(".atanis-helper").forEach((helper) => {
+    const summary = helper.querySelector(".atanis-helper-summary");
+    const input = helper.querySelector("[data-atanis-input]");
+
+    if (summary) {
+      summary.innerHTML = createAtanisSummaryMarkup(distribution);
+    }
+
+    if (input) {
+      input.value = distribution.total;
+    }
+  });
+
+  document.querySelectorAll("[data-atanis-piece-token]").forEach((node) => {
+    const token = node.getAttribute("data-atanis-piece-token");
+    const allocation = distribution.allocationMap.get(token);
+
+    if (!allocation) {
+      node.innerHTML = `<strong>Atanis Support:</strong> Available through the shared potion helper.`;
+      return;
+    }
+
+    node.innerHTML = allocation.completesPiece
+      ? `<strong>Atanis Support:</strong> Suggested to complete this pity piece (${allocation.used}/${allocation.remaining}).`
+      : `<strong>Atanis Support:</strong> Suggested +${allocation.used} here from your shared pool.`;
+  });
+}
+
 function createSimplePiece(piece, treasureId, onUpdate) {
   const wrapper = document.createElement("div");
   wrapper.className = "piece";
@@ -974,6 +1196,7 @@ function createSimplePiece(piece, treasureId, onUpdate) {
     updateState();
     saveTreasureData(treasureId, treasureState[treasureId]);
     onUpdate();
+    refreshAtanisUI();
   });
 
   updateState();
@@ -981,7 +1204,7 @@ function createSimplePiece(piece, treasureId, onUpdate) {
   return wrapper;
 }
 
-function createGrindPiece(piece, treasureId, onUpdate) {
+function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
   const wrapper = document.createElement("div");
   wrapper.className = "piece";
 
@@ -1069,6 +1292,19 @@ function createGrindPiece(piece, treasureId, onUpdate) {
   );
   wrapper.appendChild(exchangeRow);
 
+  if (piece.atanisNote && isPotionTreasureId(treasureId)) {
+    const atanisRow = document.createElement("div");
+    atanisRow.className = "sub atanis-support-row";
+
+    const atanisLabel = document.createElement("span");
+    atanisLabel.setAttribute("data-atanis-piece-token", `${treasureId}:${pieceIndex}`);
+    atanisLabel.innerHTML = `<strong>Atanis Support:</strong> Available through the shared potion helper.`;
+
+    atanisRow.appendChild(createIcon("icons/atanis-element.webp", "Atanis' Element", "icon small"));
+    atanisRow.appendChild(atanisLabel);
+    wrapper.appendChild(atanisRow);
+  }
+
   const tooltip = createTooltip(piece);
   wrapper.appendChild(tooltip);
 
@@ -1088,6 +1324,7 @@ function createGrindPiece(piece, treasureId, onUpdate) {
   function persistAndRefresh() {
     saveTreasureData(treasureId, treasureState[treasureId]);
     onUpdate();
+    refreshAtanisUI();
   }
 
   fullDropCheckbox.addEventListener("change", () => {
@@ -1213,6 +1450,7 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   function persistAndRefresh() {
     saveTreasureData(treasureId, treasureState[treasureId]);
     onUpdate();
+    refreshAtanisUI();
   }
 
   checkbox.addEventListener("change", () => {
@@ -1369,9 +1607,13 @@ function createTreasurePanel(treasureId) {
   function rerenderTree() {
     tree.innerHTML = "";
 
-    treasureData.pieces.forEach((piece) => {
+    if (treasureId === "ornette") {
+      tree.appendChild(createAtanisHelper());
+    }
+
+    treasureData.pieces.forEach((piece, pieceIndex) => {
       if (piece.type === "grind") {
-        tree.appendChild(createGrindPiece(piece, treasureId, updateOverallUI));
+        tree.appendChild(createGrindPiece(piece, treasureId, pieceIndex, updateOverallUI));
       } else if (piece.type === "crafted") {
         tree.appendChild(createCraftedPiece(piece, treasureId, updateOverallUI));
       } else if (piece.type === "simple") {
@@ -1380,6 +1622,7 @@ function createTreasurePanel(treasureId) {
     });
 
     updateOverallUI();
+    refreshAtanisUI();
   }
 
   panelTop.addEventListener("click", (event) => {
@@ -1417,6 +1660,7 @@ function createTreasurePanel(treasureId) {
 
     const freshPanel = createTreasurePanel(treasureId);
     panel.replaceWith(freshPanel);
+    refreshAtanisUI();
   });
 
   rerenderTree();
@@ -1430,6 +1674,8 @@ function renderAllTreasures() {
   getTreasureIds().forEach((treasureId) => {
     treasureGrid.appendChild(createTreasurePanel(treasureId));
   });
+
+  refreshAtanisUI();
 }
 
 document.addEventListener("click", (event) => {

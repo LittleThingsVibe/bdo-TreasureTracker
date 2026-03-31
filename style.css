@@ -892,6 +892,10 @@ body::after {
   display: block;
 }
 
+.treasure-panel.collapsed .combine-tooltip {
+  display: none !important;
+}
+
 .combine-tooltip-inner {
   padding: 12px;
   border-radius: 16px;
@@ -919,6 +923,180 @@ body::after {
   color: #dbe3ee;
   font-size: 0.85rem;
   line-height: 1.45;
+}
+
+.atanis-helper {
+  margin: 4px 0 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(245, 199, 107, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01)),
+    rgba(10, 18, 32, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 24px rgba(0, 0, 0, 0.16);
+}
+
+.atanis-helper-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.atanis-helper-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.atanis-helper-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.atanis-helper-icon {
+  filter: drop-shadow(0 0 10px rgba(245, 199, 107, 0.18));
+}
+
+.atanis-helper-title {
+  margin: 0 0 5px;
+  font-size: 0.98rem;
+  line-height: 1.2;
+  color: #fff4d2;
+}
+
+.atanis-helper-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.atanis-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 132px;
+}
+
+.atanis-input-label {
+  color: var(--soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.atanis-total-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.94rem;
+  font-family: inherit;
+  font-weight: 700;
+  transition: 0.16s ease;
+}
+
+.atanis-total-input:focus {
+  outline: none;
+  border-color: rgba(245, 199, 107, 0.4);
+  box-shadow: 0 0 0 3px rgba(245, 199, 107, 0.08);
+}
+
+.atanis-helper-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.atanis-summary-line,
+.atanis-summary-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.atanis-summary-empty {
+  color: var(--muted);
+}
+
+.atanis-allocation-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.atanis-allocation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.atanis-allocation-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: #e8eef7;
+  font-size: 0.84rem;
+}
+
+.atanis-allocation-meta {
+  color: var(--soft);
+}
+
+.atanis-allocation-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.atanis-allocation-tag.complete {
+  color: #f7e8c0;
+  border: 1px solid rgba(245, 199, 107, 0.22);
+  background: rgba(245, 199, 107, 0.08);
+}
+
+.atanis-allocation-tag.partial {
+  color: #dce8f7;
+  border: 1px solid rgba(111, 161, 255, 0.2);
+  background: rgba(111, 161, 255, 0.08);
+}
+
+.atanis-summary-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--soft);
+  font-size: 0.78rem;
+  padding-top: 2px;
+}
+
+.atanis-support-row {
+  color: var(--soft);
 }
 
 /* floating action buttons */
@@ -1123,12 +1301,30 @@ body::after {
   }
 
   .page-header {
-    margin-bottom: 18px;
-    padding-bottom: 14px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+  }
+
+  .header-kicker {
+    margin-bottom: 6px;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
   }
 
   .title-wrap h1 {
-    font-size: 1.95rem;
+    font-size: 1.72rem;
+    line-height: 1.02;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+  }
+
+  .seo-intro {
+    margin-top: 10px;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: #8fa1b8;
   }
 
   .treasure-panel {
@@ -1144,9 +1340,11 @@ body::after {
   .panel-top {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
   }
 
   .panel-title-row {
+    width: 100%;
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
@@ -1156,6 +1354,7 @@ body::after {
     width: 100%;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
   }
 
   .overall-box {
@@ -1169,8 +1368,31 @@ body::after {
   }
 
   .combine-tooltip {
-    left: 0;
-    width: min(280px, calc(100vw - 48px));
+    position: fixed;
+    top: 50%;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-width: 380px;
+    margin: 0 auto;
+    transform: translateY(-50%);
+    z-index: 220;
+  }
+
+  .combine-help-wrap.open::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 8, 15, 0.68);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 210;
+  }
+
+  .combine-tooltip-inner {
+    padding: 12px;
+    max-height: min(78vh, 520px);
+    overflow-y: auto;
   }
 
   .icon.large {
@@ -1191,16 +1413,52 @@ body::after {
     grid-template-columns: 1fr;
   }
 
-  .floating-actions {
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
+  .atanis-helper {
+    padding: 12px 12px 14px;
+  }
+
+  .atanis-helper-head {
+    flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+  }
+
+  .atanis-helper-title-row {
+    gap: 10px;
+  }
+
+  .atanis-input-group {
+    min-width: 0;
+  }
+
+  .atanis-allocation-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .atanis-allocation-tag {
+    align-self: flex-start;
+  }
+
+  .floating-actions {
+    right: 10px;
+    bottom: 10px;
+    left: auto;
+    align-items: flex-end;
+    gap: 8px;
   }
 
   .floating-action-btn {
-    width: 100%;
+    width: auto;
+    max-width: calc(100vw - 20px);
     justify-content: center;
-    min-height: 44px;
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    gap: 8px;
+  }
+
+  body {
+    padding-bottom: 96px;
   }
 }

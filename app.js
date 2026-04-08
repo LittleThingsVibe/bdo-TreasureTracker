@@ -1750,6 +1750,9 @@ function createTreasurePanel(treasureId) {
   titleMain.appendChild(titleLine);
   titleMain.appendChild(metaRow);
 
+  titleGroup.appendChild(titleMain);
+  titleRow.appendChild(titleGroup);
+
   const subtitle = document.createElement("p");
   subtitle.className = "panel-subtitle";
   subtitle.textContent = treasureData.subtitle;
@@ -1864,8 +1867,6 @@ function createTreasurePanel(treasureId) {
     }
 
     savePanelState(panelState);
-    closeAllTooltips();
-    closeAllCombineTooltips();
   });
 
   resetButton.addEventListener("click", (event) => {
@@ -1898,7 +1899,7 @@ function renderAllTreasures() {
 }
 
 document.addEventListener("click", (event) => {
-  if (!event.target.closest(".help") && !event.target.closest(".tooltip")) {
+  if (!event.target.classList.contains("help")) {
     closeAllTooltips();
   }
 
@@ -1911,10 +1912,5 @@ window.addEventListener("resize", () => {
   closeAllTooltips();
   closeAllCombineTooltips();
 });
-
-window.addEventListener("scroll", () => {
-  closeAllTooltips();
-  closeAllCombineTooltips();
-}, { passive: true });
 
 renderAllTreasures();

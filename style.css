@@ -1542,83 +1542,71 @@ body::after {
     max-width: none;
   }
 
-  .tooltip,
-  .simple-layout .tooltip {
+  .tooltip {
     position: static;
     width: 100%;
     max-width: none;
-    margin: 8px 0 0;
+    margin-top: 8px;
     left: auto;
     right: auto;
+    top: auto;
+    bottom: auto;
     transform: none;
+    animation: none;
   }
 
   .tooltip.flip-up,
-  .simple-layout .tooltip.flip-up {
-    bottom: auto;
-  }
-
   .tooltip.shift-left,
   .tooltip.shift-center {
-    right: auto;
     left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
     transform: none;
+  }
+
+  .combine-help-wrap {
+    align-self: flex-start;
   }
 
   .combine-tooltip {
     position: fixed;
-    top: 50%;
-    left: 16px;
-    right: 16px;
+    inset: auto 12px 12px 12px;
     width: auto;
-    max-width: 392px;
-    margin: 0 auto;
-    transform: translateY(-50%);
-    z-index: 220;
-  }
-
-  .combine-help-wrap.open::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: rgba(3, 8, 15, 0.76);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    z-index: 210;
+    max-height: 72vh;
+    overflow: auto;
+    z-index: 240;
   }
 
   .combine-tooltip-inner {
-    padding: 14px;
-    max-height: min(80vh, 560px);
-    overflow-y: auto;
+    padding: 12px;
+    border-radius: 16px;
   }
 
   .combine-tooltip-image {
-    height: 190px;
-    padding: 8px;
+    height: auto;
+    max-height: 42vh;
+    margin-bottom: 10px;
   }
 
-  .icon.large {
-    width: 26px;
-    height: 26px;
+  .piece {
+    padding-left: 12px;
+    margin-bottom: 10px;
   }
 
-  .icon.panel-icon {
-    width: 32px;
-    height: 32px;
+  .piece-title {
+    font-size: 1rem;
+    align-items: flex-start;
   }
 
-  .overall-value {
-    font-size: 1.45rem;
+  .sub {
+    margin-left: 18px;
+    padding-left: 12px;
+    font-size: 0.86rem;
   }
 
-  .simple-layout .tree {
-    grid-template-columns: 1fr;
-  }
-
-  .atanis-helper,
-  .atanis-mirror-helper {
-    padding: 12px 12px 14px;
+  .bar {
+    margin-left: 34px;
   }
 
   .atanis-helper-head,
@@ -1628,44 +1616,112 @@ body::after {
     gap: 12px;
   }
 
-  .atanis-helper-title-row,
-  .atanis-mirror-title-row {
-    gap: 10px;
-  }
-
   .atanis-input-group,
   .atanis-mirror-input-group {
     min-width: 0;
+    width: 100%;
   }
 
   .atanis-allocation-item {
-    align-items: flex-start;
     flex-direction: column;
+    align-items: flex-start;
   }
 
-  .atanis-allocation-tag {
-    align-self: flex-start;
+  .atanis-summary-footer {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .floating-actions {
-    right: 10px;
-    bottom: 10px;
-    left: auto;
-    align-items: flex-end;
+    right: 12px;
+    bottom: 12px;
     gap: 8px;
   }
 
   .floating-action-btn {
-    width: auto;
-    max-width: calc(100vw - 20px);
-    justify-content: center;
-    min-height: 40px;
-    padding: 8px 12px;
+    min-height: 42px;
+    padding: 9px 12px;
     font-size: 0.82rem;
+  }
+
+  .floating-action-text {
+    max-width: 140px;
+  }
+
+  .treasure-krogdalo.simple-layout .piece {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .panel-title-group {
+    width: 100%;
+  }
+
+  .panel-title-line {
+    align-items: flex-start;
+  }
+
+  .panel-top h2 {
+    font-size: 1.08rem;
+  }
+
+  .panel-subtitle {
+    font-size: 0.86rem;
+  }
+
+  .overall-value {
+    font-size: 1.46rem;
+  }
+
+  .overall-count,
+  .overall-label {
+    font-size: 0.72rem;
+  }
+
+  .panel-pill {
+    font-size: 0.63rem;
+    padding: 4px 8px;
+  }
+
+  .ghost-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .simple-layout .piece {
+    padding: 12px 12px 10px;
+  }
+
+  .piece-title {
     gap: 8px;
   }
 
-  body {
-    padding-bottom: 96px;
+  .icon.panel-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .icon.large {
+    width: 28px;
+    height: 28px;
+  }
+
+  .floating-action-text {
+    display: none;
+  }
+
+  .floating-action-btn {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .floating-action-icon {
+    width: 20px;
+    height: 20px;
   }
 }

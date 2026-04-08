@@ -642,17 +642,61 @@ function getDefaultTreasureData(treasureId) {
 function normalizeLoadedData(treasureId, parsed) {
   const fallback = getDefaultTreasureData(treasureId);
 
-  if (!parsed || !Array.isArray(parsed.pieces)) {
+  if (!parsed || typeof parsed !== "object") {
     return fallback;
   }
 
-  if (typeof parsed.name !== "string" || typeof parsed.subtitle !== "string") {
+  parsed.id = fallback.id;
+  parsed.name = typeof parsed.name === "string" ? parsed.name : fallback.name;
+  parsed.subtitle = typeof parsed.subtitle === "string" ? parsed.subtitle : fallback.subtitle;
+  parsed.icon = parsed.icon || fallback.icon;
+  parsed.combine = parsed.combine || fallback.combine;
+
+  if (!Array.isArray(parsed.pieces)) {
     return fallback;
   }
 
-  if (!parsed.combine && fallback.combine) {
-    parsed.combine = fallback.combine;
-  }
+  parsed.pieces = fallback.pieces.map((fallbackPiece, index) => {
+    const savedPiece = parsed.pieces[index];
+    if (!savedPiece || typeof savedPiece !== "object") {
+      return deepClone(fallbackPiece);
+    }
+
+    const merged = {
+      ...deepClone(fallbackPiece),
+      ...savedPiece
+    };
+
+    if (fallbackPiece.fullDrop) {
+      merged.fullDrop = {
+        ...deepClone(fallbackPiece.fullDrop),
+        ...(savedPiece.fullDrop || {})
+      };
+    }
+
+    if (fallbackPiece.pity) {
+      merged.pity = {
+        ...deepClone(fallbackPiece.pity),
+        ...(savedPiece.pity || {})
+      };
+    }
+
+    if (fallbackPiece.exchange) {
+      merged.exchange = {
+        ...deepClone(fallbackPiece.exchange),
+        ...(savedPiece.exchange || {})
+      };
+    }
+
+    if (fallbackPiece.material) {
+      merged.material = {
+        ...deepClone(fallbackPiece.material),
+        ...(savedPiece.material || {})
+      };
+    }
+
+    return merged;
+  });
 
   return parsed;
 }
@@ -730,11 +774,11 @@ getTreasureIds().forEach((treasureId) => {
 });
 
 function isGrindPieceComplete(piece) {
-  return piece.fullDrop.obtained || piece.pity.current >= piece.pity.max;
+  return !!piece.fullDrop?.obtained || Number(piece.pity?.current || 0) >= Number(piece.pity?.max || 0);
 }
 
 function isCraftedPieceComplete(piece) {
-  return !!piece.obtained || piece.material.current >= piece.material.required;
+  return !!piece.obtained || Number(piece.material?.current || 0) >= Number(piece.material?.required || 0);
 }
 
 function isSimplePieceComplete(piece) {
@@ -748,8 +792,34 @@ function isPieceComplete(piece) {
   return false;
 }
 
+function getPieceProgress(piece) {
+  if (piece.type === "grind") {
+    if (piece.fullDrop?.obtained) return 1;
+    const current = clamp(Number(piece.pity?.current) || 0, 0, Number(piece.pity?.max) || 0);
+    const max = Number(piece.pity?.max) || 0;
+    return max <= 0 ? 0 : current / max;
+  }
+
+  if (piece.type === "crafted") {
+    if (piece.obtained) return 1;
+    const current = clamp(Number(piece.material?.current) || 0, 0, Number(piece.material?.required) || 0);
+    const required = Number(piece.material?.required) || 0;
+    return required <= 0 ? 0 : current / required;
+  }
+
+  if (piece.type === "simple") {
+    return piece.obtained ? 1 : 0;
+  }
+
+  return 0;
+}
+
 function isSimpleTreasure(treasureData) {
   return treasureData.pieces.every((piece) => piece.type === "simple");
+}
+
+function isPotionTreasureId(treasureId) {
+  return treasureId === "ornette" || treasureId === "odore";
 }
 
 function getTreasureTypeLabel(treasureData) {
@@ -767,7 +837,8 @@ function getTreasureTypeLabel(treasureData) {
 function calculateOverallProgress(treasureData) {
   const total = treasureData.pieces.length;
   const completed = treasureData.pieces.filter(isPieceComplete).length;
-  const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+  const progressSum = treasureData.pieces.reduce((sum, piece) => sum + getPieceProgress(piece), 0);
+  const percent = total === 0 ? 0 : Math.round((progressSum / total) * 100);
 
   return { total, completed, percent };
 }
@@ -790,6 +861,7 @@ function createTooltip(piece) {
 function closeAllTooltips() {
   document.querySelectorAll(".tooltip").forEach((tooltip) => {
     tooltip.style.display = "none";
+    tooltip.classList.remove("flip-up");
   });
 }
 
@@ -859,10 +931,38 @@ function createInlineIconLabel(iconPath, labelHTML) {
   return wrapper;
 }
 
+function positionTooltip(help, tooltip) {
+  if (window.innerWidth <= 760) {
+    tooltip.classList.remove("flip-up");
+    return;
+  }
+
+  tooltip.classList.remove("flip-up");
+  tooltip.style.display = "block";
+
+  const rect = tooltip.getBoundingClientRect();
+  const bottomSpace = window.innerHeight - rect.bottom;
+  const topSpace = rect.top;
+
+  if (bottomSpace < 16 && topSpace > rect.height + 16) {
+    tooltip.classList.add("flip-up");
+  } else {
+    tooltip.classList.remove("flip-up");
+  }
+
+  tooltip.style.display = "none";
+}
+
+function showTooltip(help, tooltip) {
+  positionTooltip(help, tooltip);
+  closeAllTooltips();
+  tooltip.style.display = "block";
+}
+
 function attachTooltipHandlers(help, tooltip) {
   help.addEventListener("mouseenter", () => {
     if (window.innerWidth <= 760) return;
-    tooltip.style.display = "block";
+    showTooltip(help, tooltip);
   });
 
   help.addEventListener("mouseleave", () => {
@@ -873,8 +973,14 @@ function attachTooltipHandlers(help, tooltip) {
   help.addEventListener("click", (event) => {
     event.stopPropagation();
     const isVisible = tooltip.style.display === "block";
-    closeAllTooltips();
-    tooltip.style.display = isVisible ? "none" : "block";
+
+    if (isVisible) {
+      tooltip.style.display = "none";
+      tooltip.classList.remove("flip-up");
+      return;
+    }
+
+    showTooltip(help, tooltip);
   });
 }
 
@@ -938,10 +1044,6 @@ function createCombineButton(treasureData) {
   wrap.appendChild(tooltip);
 
   return wrap;
-}
-
-function isPotionTreasureId(treasureId) {
-  return treasureId === "ornette" || treasureId === "odore";
 }
 
 function getAtanisEligiblePieces() {
@@ -1084,18 +1186,40 @@ function createAtanisHelper() {
   return helper;
 }
 
-function createMiniAtanisControl() {
-  const wrapper = document.createElement("div");
-  wrapper.className = "atanis-mini-control";
-  wrapper.innerHTML = `
-    <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon small atanis-mini-icon">
-    <span class="atanis-mini-label">Atanis</span>
-    <input type="number" min="0" step="1" value="${atanisState.total}" class="atanis-mini-input" data-atanis-mini-input>
+function createAtanisMirrorHelper() {
+  const helper = document.createElement("section");
+  helper.className = "atanis-mirror-helper";
+
+  const distribution = getAtanisDistribution();
+
+  helper.innerHTML = `
+    <div class="atanis-mirror-head">
+      <div class="atanis-mirror-copy">
+        <div class="atanis-mirror-title-row">
+          <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon large atanis-helper-icon">
+          <div>
+            <h3 class="atanis-mirror-title">Shared Atanis Input</h3>
+            <p class="atanis-mirror-note">
+              This is the same shared Atanis pool used by the HP potion helper.
+            </p>
+            <div class="atanis-shared-note">Shared with HP potion</div>
+          </div>
+        </div>
+      </div>
+
+      <label class="atanis-mirror-input-group">
+        <span class="atanis-mirror-input-label">Atanis Elements</span>
+        <input type="number" min="0" step="1" value="${distribution.total}" class="atanis-mirror-input" data-atanis-mirror-input>
+      </label>
+    </div>
+
+    <div class="atanis-mirror-summary">
+      ${createAtanisSummaryMarkup(distribution)}
+    </div>
   `;
 
-  const input = wrapper.querySelector("[data-atanis-mini-input]");
-  input.addEventListener("input", (event) => {
-    event.stopPropagation();
+  const input = helper.querySelector("[data-atanis-mirror-input]");
+  input.addEventListener("input", () => {
     const safeValue = clamp(Number(input.value) || 0, 0, 999999);
     atanisState.total = safeValue;
     input.value = safeValue;
@@ -1103,9 +1227,7 @@ function createMiniAtanisControl() {
     refreshAtanisUI();
   });
 
-  input.addEventListener("click", (event) => event.stopPropagation());
-
-  return wrapper;
+  return helper;
 }
 
 function refreshAtanisUI() {
@@ -1119,8 +1241,12 @@ function refreshAtanisUI() {
     if (input) input.value = distribution.total;
   });
 
-  document.querySelectorAll("[data-atanis-mini-input]").forEach((input) => {
-    input.value = distribution.total;
+  document.querySelectorAll(".atanis-mirror-helper").forEach((helper) => {
+    const summary = helper.querySelector(".atanis-mirror-summary");
+    const input = helper.querySelector("[data-atanis-mirror-input]");
+
+    if (summary) summary.innerHTML = createAtanisSummaryMarkup(distribution);
+    if (input) input.value = distribution.total;
   });
 
   document.querySelectorAll("[data-atanis-piece-token]").forEach((node) => {
@@ -1322,7 +1448,7 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
     mainCheckbox.checked = completed;
     fullDropCheckbox.checked = !!piece.fullDrop.obtained;
     wrapper.classList.toggle("completed-piece", completed);
-    fill.style.width = `${(piece.pity.current / piece.pity.max) * 100}%`;
+    fill.style.width = `${Math.round(getPieceProgress(piece) * 100)}%`;
   }
 
   function persistAndRefresh() {
@@ -1448,7 +1574,7 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
 
     materialInput.value = piece.material.current;
     wrapper.classList.toggle("completed-piece", isCraftedPieceComplete(piece));
-    fill.style.width = `${(piece.material.current / piece.material.required) * 100}%`;
+    fill.style.width = `${Math.round(getPieceProgress(piece) * 100)}%`;
   }
 
   function persistAndRefresh() {
@@ -1483,6 +1609,17 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   updatePieceState();
 
   return wrapper;
+}
+
+function createMarketFlavorNode(treasureId) {
+  const flavor = document.createElement("span");
+  flavor.className = "market-flavor hidden";
+
+  if (treasureId === "ornette" || treasureId === "odore") {
+    flavor.textContent = "(or skip it for ~8.5B on the marketplace)";
+  }
+
+  return flavor;
 }
 
 function createTreasurePanel(treasureId) {
@@ -1560,10 +1697,6 @@ function createTreasurePanel(treasureId) {
   const actions = document.createElement("div");
   actions.className = "panel-actions";
 
-  if (treasureId === "odore") {
-    actions.appendChild(createMiniAtanisControl());
-  }
-
   const overallBox = document.createElement("div");
   overallBox.className = "overall-box";
 
@@ -1577,9 +1710,12 @@ function createTreasurePanel(treasureId) {
   const overallCount = document.createElement("span");
   overallCount.className = "overall-count";
 
+  const marketFlavor = createMarketFlavorNode(treasureId);
+
   overallBox.appendChild(overallLabel);
   overallBox.appendChild(overallValue);
   overallBox.appendChild(overallCount);
+  overallBox.appendChild(marketFlavor);
 
   const resetButton = document.createElement("button");
   resetButton.type = "button";
@@ -1610,6 +1746,12 @@ function createTreasurePanel(treasureId) {
     overallValue.textContent = `${percent}%`;
     overallCount.textContent = `${completed} / ${total} completed`;
     overallFill.style.width = `${percent}%`;
+
+    if (isPotionTreasureId(treasureId) && completed < total) {
+      marketFlavor.classList.remove("hidden");
+    } else {
+      marketFlavor.classList.add("hidden");
+    }
   }
 
   function rerenderTree() {
@@ -1617,6 +1759,10 @@ function createTreasurePanel(treasureId) {
 
     if (treasureId === "ornette") {
       tree.appendChild(createAtanisHelper());
+    }
+
+    if (treasureId === "odore") {
+      tree.appendChild(createAtanisMirrorHelper());
     }
 
     treasureData.pieces.forEach((piece, pieceIndex) => {
@@ -1693,6 +1839,11 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest(".combine-help-wrap")) {
     closeAllCombineTooltips();
   }
+});
+
+window.addEventListener("resize", () => {
+  closeAllTooltips();
+  closeAllCombineTooltips();
 });
 
 renderAllTreasures();

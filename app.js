@@ -858,11 +858,29 @@ function createTooltip(piece) {
   return tooltip;
 }
 
+function clearTooltipClasses() {
+  document.querySelectorAll(".piece.tooltip-open").forEach((piece) => {
+    piece.classList.remove("tooltip-open");
+  });
+
+  document.querySelectorAll(".treasure-panel.tooltip-active").forEach((panel) => {
+    panel.classList.remove("tooltip-active");
+  });
+
+  document.querySelectorAll(".help.is-active").forEach((help) => {
+    help.classList.remove("is-active");
+  });
+
+  document.querySelectorAll(".tooltip").forEach((tooltip) => {
+    tooltip.classList.remove("flip-up", "shift-left", "shift-center");
+  });
+}
+
 function closeAllTooltips() {
   document.querySelectorAll(".tooltip").forEach((tooltip) => {
     tooltip.style.display = "none";
-    tooltip.classList.remove("flip-up");
   });
+  clearTooltipClasses();
 }
 
 function closeAllCombineTooltips() {
@@ -932,31 +950,65 @@ function createInlineIconLabel(iconPath, labelHTML) {
 }
 
 function positionTooltip(help, tooltip) {
+  tooltip.classList.remove("flip-up", "shift-left", "shift-center");
+
   if (window.innerWidth <= 760) {
-    tooltip.classList.remove("flip-up");
     return;
   }
 
-  tooltip.classList.remove("flip-up");
   tooltip.style.display = "block";
 
+  const viewportPadding = 16;
   const rect = tooltip.getBoundingClientRect();
-  const bottomSpace = window.innerHeight - rect.bottom;
-  const topSpace = rect.top;
 
-  if (bottomSpace < 16 && topSpace > rect.height + 16) {
+  const bottomOverflow = rect.bottom > window.innerHeight - viewportPadding;
+  const hasTopSpace = rect.top >= rect.height + viewportPadding;
+
+  if (bottomOverflow && hasTopSpace) {
     tooltip.classList.add("flip-up");
-  } else {
-    tooltip.classList.remove("flip-up");
+  }
+
+  tooltip.classList.remove("shift-left", "shift-center");
+  const updatedRect = tooltip.getBoundingClientRect();
+
+  if (updatedRect.right > window.innerWidth - viewportPadding) {
+    tooltip.classList.add("shift-left");
+  }
+
+  const leftRect = tooltip.getBoundingClientRect();
+  if (leftRect.left < viewportPadding) {
+    tooltip.classList.remove("shift-left");
+    tooltip.classList.add("shift-center");
   }
 
   tooltip.style.display = "none";
 }
 
+function markTooltipOpen(help, tooltip) {
+  const piece = help.closest(".piece");
+  const panel = help.closest(".treasure-panel");
+
+  if (piece) {
+    piece.classList.add("tooltip-open");
+  }
+
+  if (panel) {
+    panel.classList.add("tooltip-active");
+  }
+
+  help.classList.add("is-active");
+}
+
 function showTooltip(help, tooltip) {
-  positionTooltip(help, tooltip);
   closeAllTooltips();
+  positionTooltip(help, tooltip);
+  markTooltipOpen(help, tooltip);
   tooltip.style.display = "block";
+}
+
+function hideTooltip(tooltip) {
+  tooltip.style.display = "none";
+  clearTooltipClasses();
 }
 
 function attachTooltipHandlers(help, tooltip) {
@@ -967,7 +1019,23 @@ function attachTooltipHandlers(help, tooltip) {
 
   help.addEventListener("mouseleave", () => {
     if (window.innerWidth <= 760) return;
-    tooltip.style.display = "none";
+    const piece = help.closest(".piece");
+    if (piece && piece.matches(":hover")) return;
+    hideTooltip(tooltip);
+  });
+
+  const piece = help.closest(".piece");
+  if (piece) {
+    piece.addEventListener("mouseleave", () => {
+      if (window.innerWidth <= 760) return;
+      if (tooltip.matches(":hover")) return;
+      hideTooltip(tooltip);
+    });
+  }
+
+  tooltip.addEventListener("mouseleave", () => {
+    if (window.innerWidth <= 760) return;
+    hideTooltip(tooltip);
   });
 
   help.addEventListener("click", (event) => {
@@ -975,8 +1043,7 @@ function attachTooltipHandlers(help, tooltip) {
     const isVisible = tooltip.style.display === "block";
 
     if (isVisible) {
-      tooltip.style.display = "none";
-      tooltip.classList.remove("flip-up");
+      hideTooltip(tooltip);
       return;
     }
 
@@ -1683,9 +1750,6 @@ function createTreasurePanel(treasureId) {
   titleMain.appendChild(titleLine);
   titleMain.appendChild(metaRow);
 
-  titleGroup.appendChild(titleMain);
-  titleRow.appendChild(titleGroup);
-
   const subtitle = document.createElement("p");
   subtitle.className = "panel-subtitle";
   subtitle.textContent = treasureData.subtitle;
@@ -1800,6 +1864,8 @@ function createTreasurePanel(treasureId) {
     }
 
     savePanelState(panelState);
+    closeAllTooltips();
+    closeAllCombineTooltips();
   });
 
   resetButton.addEventListener("click", (event) => {
@@ -1832,7 +1898,7 @@ function renderAllTreasures() {
 }
 
 document.addEventListener("click", (event) => {
-  if (!event.target.classList.contains("help")) {
+  if (!event.target.closest(".help") && !event.target.closest(".tooltip")) {
     closeAllTooltips();
   }
 
@@ -1845,5 +1911,10 @@ window.addEventListener("resize", () => {
   closeAllTooltips();
   closeAllCombineTooltips();
 });
+
+window.addEventListener("scroll", () => {
+  closeAllTooltips();
+  closeAllCombineTooltips();
+}, { passive: true });
 
 renderAllTreasures();

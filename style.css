@@ -160,7 +160,7 @@ body::after {
   --accent-border: rgba(245, 199, 107, 0.18);
 
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.045);
   background:

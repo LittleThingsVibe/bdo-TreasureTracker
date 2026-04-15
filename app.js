@@ -1,6 +1,19 @@
 const STORAGE_PREFIX = "bdoTreasureTracker_";
-const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v6";
+const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v7";
 const ATANIS_STATE_KEY = "bdoTreasureTracker_atanis_v2";
+
+const CRITICAL_STATIC_ASSETS = [
+  "images/background-main.png",
+  "images/hp-potion-background.png",
+  "images/mp-potion-background.png",
+  "images/map-background.png",
+  "images/compass-background.png",
+  "images/telescope-background.png",
+  "images/ring-background.png",
+  "images/krogdalo-background.png",
+  "icons/cron-stone.webp",
+  "icons/atanis-element.webp"
+];
 
 const treasureRegistry = {
   ornette: {
@@ -244,7 +257,7 @@ const treasureRegistry = {
     },
     pieces: [
       {
-        name: "Map Piece (Sulfur #1)",
+        name: "Map Piece (Tukar)",
         icon: "icons/map-piece-1.webp",
         type: "simple",
         obtained: false,
@@ -253,7 +266,7 @@ const treasureRegistry = {
         tip: "Very low drop rate. Afuaru can also drop it. Dekhia is the better high-GS option."
       },
       {
-        name: "Map Piece (Pila Ku #2)",
+        name: "Map Piece (Warder)",
         icon: "icons/map-piece-2.webp",
         type: "simple",
         obtained: false,
@@ -262,7 +275,7 @@ const treasureRegistry = {
         tip: "Pila Ku piece. Keep it tracked separately. Dekhia is better for stronger players."
       },
       {
-        name: "Map Piece (Sulfur #3)",
+        name: "Map Piece (Devourer)",
         icon: "icons/map-piece-3.webp",
         type: "simple",
         obtained: false,
@@ -271,7 +284,7 @@ const treasureRegistry = {
         tip: "Second Sulfur-side piece with a different source mob. Dekhia is the better high-GS route."
       },
       {
-        name: "Map Piece (Pila Ku #4)",
+        name: "Map Piece (Deportee)",
         icon: "icons/map-piece-4.webp",
         type: "simple",
         obtained: false,
@@ -628,7 +641,7 @@ function clamp(value, min, max) {
 }
 
 function getStorageKey(treasureId) {
-  return `${STORAGE_PREFIX}${treasureId}_v11`;
+  return `${STORAGE_PREFIX}${treasureId}_v12`;
 }
 
 function getTreasureIds() {
@@ -760,7 +773,76 @@ function saveAtanisState(state) {
   localStorage.setItem(ATANIS_STATE_KEY, JSON.stringify(state));
 }
 
+function getIconDimensions(className = "") {
+  if (className.includes("panel-icon")) return { width: 40, height: 40 };
+  if (className.includes("krogdalo-horse-icon")) return { width: 34, height: 34 };
+  if (className.includes("small")) return { width: 18, height: 18 };
+  if (className.includes("large")) return { width: 32, height: 32 };
+  return { width: 22, height: 22 };
+}
+
+function createIcon(src, alt, className = "icon") {
+  const img = document.createElement("img");
+  const { width, height } = getIconDimensions(className);
+
+  img.src = src;
+  img.alt = alt || "";
+  img.className = className;
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.width = width;
+  img.height = height;
+
+  return img;
+}
+
+function collectPathsFromValue(value, bucket) {
+  if (!value) return;
+
+  if (typeof value === "string") {
+    if (/\.(png|webp|jpg|jpeg|gif|svg)$/i.test(value)) {
+      bucket.add(value);
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectPathsFromValue(item, bucket));
+    return;
+  }
+
+  if (typeof value === "object") {
+    Object.values(value).forEach((entry) => collectPathsFromValue(entry, bucket));
+  }
+}
+
+function getCriticalAssetList() {
+  const assets = new Set(CRITICAL_STATIC_ASSETS);
+  collectPathsFromValue(treasureRegistry, assets);
+  return Array.from(assets);
+}
+
+function preloadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+
+    img.onload = () => resolve({ src, ok: true });
+    img.onerror = () => resolve({ src, ok: false });
+    img.src = src;
+
+    if (img.complete) {
+      resolve({ src, ok: true });
+    }
+  });
+}
+
 const treasureGrid = document.getElementById("treasureGrid");
+const appRoot = document.getElementById("appRoot");
+const appLoader = document.getElementById("appLoader");
+const loaderProgressFill = document.getElementById("loaderProgressFill");
+const loaderPercent = document.getElementById("loaderPercent");
+const loaderStatus = document.getElementById("loaderStatus");
+
 const treasureState = {};
 const panelState = loadPanelState();
 const atanisState = loadAtanisState();
@@ -772,6 +854,48 @@ getTreasureIds().forEach((treasureId) => {
     panelState[treasureId] = false;
   }
 });
+
+function updateLoaderProgress(done, total, label = "Loading...") {
+  const safeTotal = Math.max(total, 1);
+  const percent = Math.round((done / safeTotal) * 100);
+
+  if (loaderProgressFill) {
+    loaderProgressFill.style.width = `${percent}%`;
+  }
+
+  if (loaderPercent) {
+    loaderPercent.textContent = `${percent}%`;
+  }
+
+  if (loaderStatus) {
+    loaderStatus.textContent = label;
+  }
+}
+
+async function preloadCriticalAssets() {
+  const assets = getCriticalAssetList();
+  let completed = 0;
+
+  updateLoaderProgress(0, assets.length, "Collecting assets...");
+
+  for (const asset of assets) {
+    await preloadImage(asset);
+    completed += 1;
+    updateLoaderProgress(completed, assets.length, `Loading assets (${completed}/${assets.length})`);
+  }
+}
+
+function revealApp() {
+  appRoot.setAttribute("aria-hidden", "false");
+  document.body.classList.remove("app-booting");
+  document.body.classList.add("app-ready");
+
+  window.setTimeout(() => {
+    if (appLoader) {
+      appLoader.remove();
+    }
+  }, 700);
+}
 
 function isGrindPieceComplete(piece) {
   return !!piece.fullDrop?.obtained || Number(piece.pity?.current || 0) >= Number(piece.pity?.max || 0);
@@ -925,15 +1049,6 @@ function createChevron() {
   return svg;
 }
 
-function createIcon(src, alt, className = "icon") {
-  const img = document.createElement("img");
-  img.src = src;
-  img.alt = alt || "";
-  img.className = className;
-  img.loading = "lazy";
-  return img;
-}
-
 function createInlineIconLabel(iconPath, labelHTML) {
   const wrapper = document.createElement("span");
   wrapper.className = "inline-icon-label";
@@ -984,7 +1099,7 @@ function positionTooltip(help, tooltip) {
   tooltip.style.display = "none";
 }
 
-function markTooltipOpen(help, tooltip) {
+function markTooltipOpen(help) {
   const piece = help.closest(".piece");
   const panel = help.closest(".treasure-panel");
 
@@ -1002,7 +1117,7 @@ function markTooltipOpen(help, tooltip) {
 function showTooltip(help, tooltip) {
   closeAllTooltips();
   positionTooltip(help, tooltip);
-  markTooltipOpen(help, tooltip);
+  markTooltipOpen(help);
   tooltip.style.display = "block";
 }
 
@@ -1070,7 +1185,7 @@ function createCombineButton(treasureData) {
 
   tooltip.innerHTML = `
     <div class="combine-tooltip-inner">
-      ${combineImage ? `<img src="${combineImage}" alt="${treasureData.name} combine layout" class="combine-tooltip-image" loading="lazy">` : ""}
+      ${combineImage ? `<img src="${combineImage}" alt="${treasureData.name} combine layout" class="combine-tooltip-image" loading="lazy" decoding="async">` : ""}
       <p class="combine-tooltip-text">${combineText}</p>
     </div>
   `;
@@ -1191,7 +1306,7 @@ function createAtanisSummaryMarkup(distribution) {
       ${distribution.allocations.map((entry) => `
         <li class="atanis-allocation-item">
           <div class="atanis-allocation-main">
-            <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon small">
+            <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon small" width="18" height="18">
             <span>
               <strong>${entry.piece.pity.item}</strong>
               <span class="atanis-allocation-meta"> — ${entry.used}/${entry.remaining} suggested</span>
@@ -1220,7 +1335,7 @@ function createAtanisHelper() {
     <div class="atanis-helper-head">
       <div class="atanis-helper-copy">
         <div class="atanis-helper-title-row">
-          <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon large atanis-helper-icon">
+          <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon large atanis-helper-icon" width="32" height="32">
           <div>
             <h3 class="atanis-helper-title">Shared Atanis' Element Helper</h3>
             <p class="atanis-helper-note">
@@ -1263,7 +1378,7 @@ function createAtanisMirrorHelper() {
     <div class="atanis-mirror-head">
       <div class="atanis-mirror-copy">
         <div class="atanis-mirror-title-row">
-          <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon large atanis-helper-icon">
+          <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon large atanis-helper-icon" width="32" height="32">
           <div>
             <h3 class="atanis-mirror-title">Shared Atanis Input</h3>
             <p class="atanis-mirror-note">
@@ -1808,6 +1923,8 @@ function createTreasurePanel(treasureId) {
   tree.className = "tree";
   panel.appendChild(tree);
 
+  let hasRenderedTree = false;
+
   function updateOverallUI() {
     const { total, completed, percent } = calculateOverallProgress(treasureData);
     overallValue.textContent = `${percent}%`;
@@ -1842,7 +1959,20 @@ function createTreasurePanel(treasureId) {
       }
     });
 
+    hasRenderedTree = true;
+    panel.dataset.rendered = "true";
     updateOverallUI();
+  }
+
+  function ensureTreeRendered() {
+    if (hasRenderedTree) return;
+    rerenderTree();
+  }
+
+  updateOverallUI();
+
+  if (!panel.classList.contains("collapsed")) {
+    ensureTreeRendered();
   }
 
   panelTop.addEventListener("click", (event) => {
@@ -1864,6 +1994,8 @@ function createTreasurePanel(treasureId) {
     if (isCurrentlyCollapsed) {
       panel.classList.remove("collapsed");
       panelState[treasureId] = true;
+      ensureTreeRendered();
+      refreshAtanisUI();
     }
 
     savePanelState(panelState);
@@ -1883,8 +2015,6 @@ function createTreasurePanel(treasureId) {
     refreshAtanisUI();
   });
 
-  rerenderTree();
-
   return panel;
 }
 
@@ -1896,6 +2026,43 @@ function renderAllTreasures() {
   });
 
   refreshAtanisUI();
+}
+
+function setupHowItWorksModal() {
+  const modal = document.getElementById("howItWorksModal");
+  const openBtn = document.getElementById("howItWorksBtn");
+  const closeBtn = document.getElementById("howItWorksClose");
+
+  if (!modal || !openBtn || !closeBtn) return;
+
+  function openModal() {
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    openBtn.setAttribute("aria-expanded", "true");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeModal() {
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    openBtn.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("modal-open");
+  }
+
+  openBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+
+  modal.addEventListener("click", (event) => {
+    if (event.target.matches("[data-help-close]")) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && modal.classList.contains("open")) {
+      closeModal();
+    }
+  });
 }
 
 document.addEventListener("click", (event) => {
@@ -1913,4 +2080,23 @@ window.addEventListener("resize", () => {
   closeAllCombineTooltips();
 });
 
-renderAllTreasures();
+async function bootApp() {
+  try {
+    updateLoaderProgress(0, 1, "Preparing tracker...");
+    await preloadCriticalAssets();
+    updateLoaderProgress(1, 1, "Rendering tracker...");
+    renderAllTreasures();
+    setupHowItWorksModal();
+
+    requestAnimationFrame(() => {
+      revealApp();
+    });
+  } catch (error) {
+    console.error("Failed during app boot:", error);
+    renderAllTreasures();
+    setupHowItWorksModal();
+    revealApp();
+  }
+}
+
+bootApp();

@@ -26,12 +26,9 @@
     name="description"
     content="Track your Black Desert Online treasure progress for the Infinite HP Potion, Infinite MP Potion, Archaeologist’s Map, Lafi Bedmountain’s Upgraded Compass, Lafi Bedmountain’s Upgraded Telescope, Rich Merchant’s Ring, and Krogdalo’s Sanctuary."
   />
-  <meta
-    name="keywords"
-    content="BDO treasure tracker, Black Desert Online tracker, infinite potion tracker, compass tracker, archaeologist map tracker, telescope tracker, rich merchant ring tracker, krogdalo sanctuary tracker"
-  />
   <meta name="author" content="LittleThingz" />
   <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#081220" />
 
   <meta property="og:title" content="BDO Treasure Tracker" />
   <meta
@@ -57,20 +54,72 @@
   />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <main class="container">
+<body class="app-booting">
+  <div id="appLoader" class="app-loader" aria-live="polite" aria-label="Loading BDO Treasure Tracker">
+    <div class="loader-backdrop"></div>
+
+    <div class="loader-card">
+      <div class="loader-emblem" aria-hidden="true">
+        <span class="loader-ring loader-ring-1"></span>
+        <span class="loader-ring loader-ring-2"></span>
+        <span class="loader-core"></span>
+      </div>
+
+      <p class="loader-kicker">Preparing your tracker</p>
+      <h1 class="loader-title">BDO Treasure Tracker</h1>
+      <p class="loader-subtitle">Loading treasure data, icons, and key visuals...</p>
+
+      <div class="loader-progress-wrap" aria-hidden="true">
+        <div class="loader-progress-bar">
+          <div id="loaderProgressFill" class="loader-progress-fill"></div>
+        </div>
+        <div class="loader-progress-meta">
+          <span id="loaderPercent">0%</span>
+          <span id="loaderStatus">Booting...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main id="appRoot" class="container app-shell" aria-hidden="true">
     <header class="page-header">
       <div class="title-wrap">
-        <p class="header-kicker">Private Progress Tracker</p>
-        <h1 class="title-glow">BDO Treasure Tracker</h1>
-        <p class="subtitle">Track all treasure progress in one place</p>
+        <p class="header-kicker">Free Black Desert Online Tool</p>
+
+        <div class="header-title-row">
+          <div class="header-title-main">
+            <h1 class="title-glow">BDO Treasure Tracker</h1>
+            <span class="app-version">v1.2</span>
+          </div>
+
+          <button
+            type="button"
+            class="header-help-btn"
+            id="howItWorksBtn"
+            aria-haspopup="dialog"
+            aria-controls="howItWorksModal"
+            aria-expanded="false"
+          >
+            How it works
+          </button>
+        </div>
+
+        <p class="subtitle">
+          Track HP Potion, MP Potion, Compass, Map, Telescope, Ring, and Krogdalo progress
+        </p>
 
         <p class="seo-intro">
           Track your Black Desert Online treasure progress for Ornette’s Spirit
           Essence, Odore’s Spirit Essence, Archaeologist’s Map, Lafi
           Bedmountain’s Upgraded Compass, Lafi Bedmountain’s Upgraded Telescope,
-          Rich Merchant’s Ring, and Krogdalo’s Sanctuary.
+          Rich Merchant’s Ring, and Krogdalo’s Sanctuary — all in one clean place,
+          with local save support and no login needed.
         </p>
+
+        <div class="save-note" aria-label="Save information">
+          <span class="save-note-icon" aria-hidden="true">⌁</span>
+          <span>Saved locally on this device/browser. No login, no cloud sync, no cross-platform sharing.</span>
+        </div>
       </div>
     </header>
 
@@ -87,7 +136,7 @@
       title="Buy me a Cron Stone"
     >
       <span class="floating-action-icon" aria-hidden="true">
-        <img src="icons/cron-stone.webp" alt="" />
+        <img src="icons/cron-stone.webp" alt="" width="22" height="22" />
       </span>
       <span class="floating-action-text">Buy me a Cron Stone</span>
     </a>
@@ -104,6 +153,75 @@
       <span class="floating-action-text">Leave feedback</span>
     </a>
   </div>
+
+  <div
+    id="howItWorksModal"
+    class="help-modal"
+    aria-hidden="true"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="howItWorksTitle"
+  >
+    <div class="help-modal-backdrop" data-help-close></div>
+
+    <div class="help-modal-card" role="document">
+      <button
+        type="button"
+        class="help-modal-close"
+        id="howItWorksClose"
+        aria-label="Close help"
+      >
+        ×
+      </button>
+
+      <p class="help-modal-kicker">Tracker Guide</p>
+      <h2 id="howItWorksTitle" class="help-modal-title">How it works</h2>
+
+      <div class="help-modal-body">
+        <section class="help-section">
+          <h3>How tracking works</h3>
+          <ul>
+            <li><strong>Simple items:</strong> check the item once you get it.</li>
+            <li><strong>Grind items:</strong> track either the full drop or pity progress.</li>
+            <li><strong>Crafted items:</strong> track the required material count until completion.</li>
+            <li><strong>Atanis helper:</strong> helps suggest pity distribution across HP and MP potion sections without auto-applying anything.</li>
+            <li><strong>Combine button:</strong> use the small anvil button to preview the final combine layout.</li>
+            <li><strong>Reset Progress:</strong> clears saved progress for that treasure panel only.</li>
+          </ul>
+        </section>
+
+        <section class="help-section">
+          <h3>Saving &amp; progress</h3>
+          <ul>
+            <li>Everything is saved <strong>locally in your browser</strong>.</li>
+            <li>There is <strong>no account system</strong> and <strong>no cloud sync</strong>.</li>
+            <li>Your progress does <strong>not</strong> automatically carry across devices, browsers, or platforms.</li>
+            <li>If browser storage, site data, or cache is cleared, your saved tracker progress may be lost.</li>
+          </ul>
+        </section>
+
+        <section class="help-section">
+          <h3>Quick tips</h3>
+          <ul>
+            <li>Open a treasure panel to start tracking.</li>
+            <li>Hover or tap the info buttons to see item details.</li>
+            <li>Keep pity values updated after each grind session.</li>
+            <li>Use the tracker regularly to avoid guessing progress later.</li>
+          </ul>
+        </section>
+      </div>
+
+      <p class="help-modal-footer">
+        Made as a simple free community tool for Black Desert Online players.
+      </p>
+    </div>
+  </div>
+
+  <noscript>
+    <div style="padding:16px; color:#fff; background:#111; text-align:center; font-family:Inter,sans-serif;">
+      This tracker needs JavaScript enabled to work properly.
+    </div>
+  </noscript>
 
   <script src="app.js"></script>
 </body>

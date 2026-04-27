@@ -1,20 +1,11 @@
 const STORAGE_PREFIX = "bdoTreasureTracker_";
-const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v7";
+const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v6";
 const ATANIS_STATE_KEY = "bdoTreasureTracker_atanis_v2";
-
-const CRITICAL_STATIC_ASSETS = [
-  "assets/loader/cute-loader.webm",
-  "images/background-main.png",
-  "images/hp-potion-background.png",
-  "images/mp-potion-background.png",
-  "images/map-background.png",
-  "images/compass-background.png",
-  "images/telescope-background.png",
-  "images/ring-background.png",
-  "images/krogdalo-background.png",
-  "icons/cron-stone.webp",
-  "icons/atanis-element.webp"
-];
+const STORAGE_WARNING_ID = "storageWarning";
+const PROGRESS_PAYLOAD_VERSION = 12;
+const VISUAL_INTRO_SESSION_KEY = "bdoTreasureTracker_visualIntroSeen_v1";
+const VISUAL_INTRO_LOCAL_KEY = "bdoTreasureTracker_visualIntroSeenAt_v1";
+const VISUAL_INTRO_RECENT_MS = 1000 * 60 * 60 * 18;
 
 const treasureRegistry = {
   ornette: {
@@ -23,7 +14,7 @@ const treasureRegistry = {
     subtitle: "Infinite HP Potion",
     icon: "icons/ornettes-spirit-essence.webp",
     combine: {
-      image: "assets/combi-hp.png",
+      image: "assets/combi-hp.webp",
       text: "Arrange the required pieces in your inventory."
     },
     pieces: [
@@ -138,7 +129,7 @@ const treasureRegistry = {
     subtitle: "Infinite MP Potion",
     icon: "icons/odores-spirit-essence.webp",
     combine: {
-      image: "assets/combi-mp.png",
+      image: "assets/combi-mp.webp",
       text: "Arrange the required pieces in your inventory."
     },
     pieces: [
@@ -253,12 +244,12 @@ const treasureRegistry = {
     subtitle: "Treasure Map",
     icon: "icons/archaeologists-map.webp",
     combine: {
-      image: "assets/combi-map.png",
+      image: "assets/combi-map.webp",
       text: "Arrange the required pieces in your inventory."
     },
     pieces: [
       {
-        name: "Map Piece (Tukar)",
+        name: "Map Piece (Sulfur #1)",
         icon: "icons/map-piece-1.webp",
         type: "simple",
         obtained: false,
@@ -267,7 +258,7 @@ const treasureRegistry = {
         tip: "Very low drop rate. Afuaru can also drop it. Dekhia is the better high-GS option."
       },
       {
-        name: "Map Piece (Warder)",
+        name: "Map Piece (Pila Ku #2)",
         icon: "icons/map-piece-2.webp",
         type: "simple",
         obtained: false,
@@ -276,7 +267,7 @@ const treasureRegistry = {
         tip: "Pila Ku piece. Keep it tracked separately. Dekhia is better for stronger players."
       },
       {
-        name: "Map Piece (Devourer)",
+        name: "Map Piece (Sulfur #3)",
         icon: "icons/map-piece-3.webp",
         type: "simple",
         obtained: false,
@@ -285,7 +276,7 @@ const treasureRegistry = {
         tip: "Second Sulfur-side piece with a different source mob. Dekhia is the better high-GS route."
       },
       {
-        name: "Map Piece (Deportee)",
+        name: "Map Piece (Pila Ku #4)",
         icon: "icons/map-piece-4.webp",
         type: "simple",
         obtained: false,
@@ -338,7 +329,7 @@ const treasureRegistry = {
     subtitle: "Treasure Compass",
     icon: "icons/compass-full.webp",
     combine: {
-      image: "assets/combi-compass.png",
+      image: "assets/combi-compass.webp",
       text: "Arrange the required pieces in your inventory."
     },
     pieces: [
@@ -405,7 +396,7 @@ const treasureRegistry = {
     subtitle: "Treasure Telescope",
     icon: "icons/lafi-bedmountains-telescope.webp",
     combine: {
-      image: "assets/combi-telescope.png",
+      image: "assets/combi-telescope.webp",
       text: "Arrange the required pieces in your inventory."
     },
     pieces: [
@@ -463,7 +454,7 @@ const treasureRegistry = {
     subtitle: "Treasure Ring",
     icon: "icons/rich-merchant-ring.webp",
     combine: {
-      image: "assets/combi-ring.png",
+      image: "assets/combi-ring.webp",
       text: "Arrange the required pieces in your inventory."
     },
     pieces: [
@@ -633,16 +624,95 @@ const treasureRegistry = {
   }
 };
 
+const pieceIdMap = {
+  ornette: [
+    "sherekhan-panacea",
+    "rons-tintinnabulum",
+    "ash-halfmoon-kagtunak",
+    "gayaks-courage-stone",
+    "musical-spirits-sound-stone"
+  ],
+  odore: [
+    "narcs-crimson-tear",
+    "markthanans-gland",
+    "valtarras-clairvoyance",
+    "krogdalos-protection-stone",
+    "night-crows-dawn-stone"
+  ],
+  map: [
+    "map-sulfur-1",
+    "map-pila-ku-2",
+    "map-sulfur-3",
+    "map-pila-ku-4",
+    "map-blood-ruby",
+    "map-ocean-sapphire",
+    "map-gold-topaz",
+    "map-forest-emerald"
+  ],
+  compass: [
+    "compass-vodkhan",
+    "compass-elten",
+    "compass-aakman",
+    "compass-blood-ruby",
+    "compass-ocean-sapphire",
+    "compass-gold-topaz"
+  ],
+  telescope: [
+    "telescope-piece-1",
+    "telescope-piece-2",
+    "telescope-piece-3",
+    "telescope-star-diamond",
+    "telescope-gold-topaz"
+  ],
+  ring: [
+    "ring-piece-one",
+    "ring-piece-two",
+    "ring-piece-three",
+    "ring-piece-four",
+    "ring-piece-five",
+    "ring-blue-coral",
+    "ring-red-coral",
+    "ring-rough-ruby",
+    "ring-ruby",
+    "ring-resplendent-ruby",
+    "ring-rough-sapphire",
+    "ring-sapphire",
+    "ring-resplendent-sapphire",
+    "ring-resplendent-topaz"
+  ],
+  krogdalo: [
+    "mythical-arduanatt",
+    "mythical-dine",
+    "mythical-doom"
+  ]
+};
+
+Object.entries(treasureRegistry).forEach(([treasureId, treasureData]) => {
+  treasureData.pieces.forEach((piece, index) => {
+    piece.id = pieceIdMap[treasureId]?.[index] || `${treasureId}-piece-${index + 1}`;
+  });
+});
+
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
 function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
+  const safeValue = Number.isFinite(value) ? value : min;
+  return Math.max(min, Math.min(max, safeValue));
+}
+
+function toFiniteNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object || {}, key);
 }
 
 function getStorageKey(treasureId) {
-  return `${STORAGE_PREFIX}${treasureId}_v12`;
+  return `${STORAGE_PREFIX}${treasureId}_v11`;
 }
 
 function getTreasureIds() {
@@ -653,6 +723,109 @@ function getDefaultTreasureData(treasureId) {
   return deepClone(treasureRegistry[treasureId]);
 }
 
+function getDefaultPanelState() {
+  return getTreasureIds().reduce((state, treasureId) => {
+    state[treasureId] = false;
+    return state;
+  }, {});
+}
+
+function getSavedValue(savedPiece, flatKey, nestedKey, nestedField) {
+  if (!savedPiece || typeof savedPiece !== "object") return undefined;
+  if (hasOwn(savedPiece, flatKey)) return savedPiece[flatKey];
+
+  const nested = savedPiece[nestedKey];
+  if (nested && typeof nested === "object" && hasOwn(nested, nestedField)) {
+    return nested[nestedField];
+  }
+
+  return undefined;
+}
+
+function applyPieceProgress(piece, savedPiece) {
+  if (!savedPiece || typeof savedPiece !== "object") return;
+
+  if (piece.type === "simple") {
+    const obtained = getSavedValue(savedPiece, "obtained");
+    if (obtained !== undefined) {
+      piece.obtained = obtained === true;
+    }
+    return;
+  }
+
+  if (piece.type === "grind") {
+    const fullDropObtained = getSavedValue(savedPiece, "fullDropObtained", "fullDrop", "obtained");
+    if (piece.fullDrop && fullDropObtained !== undefined) {
+      piece.fullDrop.obtained = fullDropObtained === true;
+    }
+
+    const pityCurrent = getSavedValue(savedPiece, "pityCurrent", "pity", "current");
+    if (piece.pity && pityCurrent !== undefined) {
+      piece.pity.current = clamp(toFiniteNumber(pityCurrent), 0, toFiniteNumber(piece.pity.max));
+    }
+    return;
+  }
+
+  if (piece.type === "crafted") {
+    const obtained = getSavedValue(savedPiece, "obtained");
+    if (obtained !== undefined) {
+      piece.obtained = obtained === true;
+    }
+
+    const materialCurrent = getSavedValue(savedPiece, "materialCurrent", "material", "current");
+    if (piece.material && materialCurrent !== undefined) {
+      piece.material.current = clamp(
+        toFiniteNumber(materialCurrent),
+        0,
+        toFiniteNumber(piece.material.required)
+      );
+    }
+  }
+}
+
+function extractPieceProgress(piece) {
+  const progress = {
+    id: piece.id,
+    type: piece.type
+  };
+
+  if (piece.type === "simple") {
+    progress.obtained = !!piece.obtained;
+  }
+
+  if (piece.type === "grind") {
+    progress.fullDropObtained = !!piece.fullDrop?.obtained;
+    progress.pityCurrent = clamp(
+      toFiniteNumber(piece.pity?.current),
+      0,
+      toFiniteNumber(piece.pity?.max)
+    );
+  }
+
+  if (piece.type === "crafted") {
+    progress.obtained = !!piece.obtained;
+    progress.materialCurrent = clamp(
+      toFiniteNumber(piece.material?.current),
+      0,
+      toFiniteNumber(piece.material?.required)
+    );
+  }
+
+  return progress;
+}
+
+function createProgressPayload(treasureData) {
+  const pieces = treasureData.pieces.reduce((savedPieces, piece) => {
+    savedPieces[piece.id] = extractPieceProgress(piece);
+    return savedPieces;
+  }, {});
+
+  return {
+    version: PROGRESS_PAYLOAD_VERSION,
+    pieces
+  };
+}
+
 function normalizeLoadedData(treasureId, parsed) {
   const fallback = getDefaultTreasureData(treasureId);
 
@@ -660,59 +833,90 @@ function normalizeLoadedData(treasureId, parsed) {
     return fallback;
   }
 
-  parsed.id = fallback.id;
-  parsed.name = typeof parsed.name === "string" ? parsed.name : fallback.name;
-  parsed.subtitle = typeof parsed.subtitle === "string" ? parsed.subtitle : fallback.subtitle;
-  parsed.icon = parsed.icon || fallback.icon;
-  parsed.combine = parsed.combine || fallback.combine;
-
-  if (!Array.isArray(parsed.pieces)) {
+  if (!parsed.pieces || typeof parsed.pieces !== "object") {
     return fallback;
   }
 
-  parsed.pieces = fallback.pieces.map((fallbackPiece, index) => {
-    const savedPiece = parsed.pieces[index];
-    if (!savedPiece || typeof savedPiece !== "object") {
-      return deepClone(fallbackPiece);
-    }
+  const savedPiecesById = {};
 
-    const merged = {
-      ...deepClone(fallbackPiece),
-      ...savedPiece
-    };
+  if (Array.isArray(parsed.pieces)) {
+    fallback.pieces.forEach((piece, index) => {
+      savedPiecesById[piece.id] = parsed.pieces[index];
+    });
+  } else {
+    fallback.pieces.forEach((piece) => {
+      savedPiecesById[piece.id] = parsed.pieces[piece.id];
+    });
+  }
 
-    if (fallbackPiece.fullDrop) {
-      merged.fullDrop = {
-        ...deepClone(fallbackPiece.fullDrop),
-        ...(savedPiece.fullDrop || {})
-      };
-    }
-
-    if (fallbackPiece.pity) {
-      merged.pity = {
-        ...deepClone(fallbackPiece.pity),
-        ...(savedPiece.pity || {})
-      };
-    }
-
-    if (fallbackPiece.exchange) {
-      merged.exchange = {
-        ...deepClone(fallbackPiece.exchange),
-        ...(savedPiece.exchange || {})
-      };
-    }
-
-    if (fallbackPiece.material) {
-      merged.material = {
-        ...deepClone(fallbackPiece.material),
-        ...(savedPiece.material || {})
-      };
-    }
-
-    return merged;
+  fallback.pieces.forEach((piece) => {
+    applyPieceProgress(piece, savedPiecesById[piece.id]);
   });
 
-  return parsed;
+  return fallback;
+}
+
+function showStorageWarning() {
+  if (!document.body) return;
+
+  let warning = document.getElementById(STORAGE_WARNING_ID);
+  if (!warning) {
+    warning = document.createElement("div");
+    warning.id = STORAGE_WARNING_ID;
+    warning.className = "storage-warning";
+    warning.setAttribute("role", "status");
+    warning.setAttribute("aria-live", "polite");
+    document.body.appendChild(warning);
+  }
+
+  warning.hidden = false;
+  warning.textContent = "Progress could not be saved in this browser session.";
+
+  window.clearTimeout(showStorageWarning.hideTimer);
+  showStorageWarning.hideTimer = window.setTimeout(() => {
+    warning.hidden = true;
+  }, 5200);
+}
+
+function saveJSONToStorage(key, value, label) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (error) {
+    console.error(`Failed to save ${label}:`, error);
+    showStorageWarning();
+    return false;
+  }
+}
+
+function removeStorageItem(key, label) {
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.error(`Failed to reset ${label}:`, error);
+    showStorageWarning();
+    return false;
+  }
+}
+
+function readStorageValue(storage, key) {
+  try {
+    return storage.getItem(key);
+  } catch (error) {
+    console.warn(`Storage read failed for ${key}:`, error);
+    return null;
+  }
+}
+
+function writeStorageValue(storage, key, value) {
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch (error) {
+    console.warn(`Storage write failed for ${key}:`, error);
+    return false;
+  }
 }
 
 function loadTreasureData(treasureId) {
@@ -729,30 +933,30 @@ function loadTreasureData(treasureId) {
 }
 
 function saveTreasureData(treasureId, treasureData) {
-  localStorage.setItem(getStorageKey(treasureId), JSON.stringify(treasureData));
+  saveJSONToStorage(getStorageKey(treasureId), createProgressPayload(treasureData), `${treasureId} progress`);
 }
 
 function loadPanelState() {
+  const defaults = getDefaultPanelState();
+
   try {
     const saved = JSON.parse(localStorage.getItem(PANEL_STATE_KEY));
-    if (saved && typeof saved === "object") return saved;
+    if (saved && typeof saved === "object") {
+      Object.keys(defaults).forEach((treasureId) => {
+        if (typeof saved[treasureId] === "boolean") {
+          defaults[treasureId] = saved[treasureId];
+        }
+      });
+    }
   } catch (error) {
     console.error("Failed to load panel state:", error);
   }
 
-  return {
-    ornette: false,
-    odore: false,
-    map: false,
-    compass: false,
-    telescope: false,
-    ring: false,
-    krogdalo: false
-  };
+  return defaults;
 }
 
 function savePanelState(state) {
-  localStorage.setItem(PANEL_STATE_KEY, JSON.stringify(state));
+  saveJSONToStorage(PANEL_STATE_KEY, state, "panel state");
 }
 
 function loadAtanisState() {
@@ -760,7 +964,7 @@ function loadAtanisState() {
     const saved = JSON.parse(localStorage.getItem(ATANIS_STATE_KEY));
     if (saved && typeof saved === "object") {
       return {
-        total: clamp(Number(saved.total) || 0, 0, 999999)
+        total: clamp(toFiniteNumber(saved.total), 0, 999999)
       };
     }
   } catch (error) {
@@ -771,103 +975,10 @@ function loadAtanisState() {
 }
 
 function saveAtanisState(state) {
-  localStorage.setItem(ATANIS_STATE_KEY, JSON.stringify(state));
-}
-
-function getIconDimensions(className = "") {
-  if (className.includes("panel-icon")) return { width: 40, height: 40 };
-  if (className.includes("krogdalo-horse-icon")) return { width: 34, height: 34 };
-  if (className.includes("small")) return { width: 18, height: 18 };
-  if (className.includes("large")) return { width: 32, height: 32 };
-  return { width: 22, height: 22 };
-}
-
-function createIcon(src, alt, className = "icon") {
-  const img = document.createElement("img");
-  const { width, height } = getIconDimensions(className);
-
-  img.src = src;
-  img.alt = alt || "";
-  img.className = className;
-  img.loading = "lazy";
-  img.decoding = "async";
-  img.width = width;
-  img.height = height;
-
-  return img;
-}
-
-function collectPathsFromValue(value, bucket) {
-  if (!value) return;
-
-  if (typeof value === "string") {
-    if (/\.(png|webp|jpg|jpeg|gif|svg)$/i.test(value)) {
-      bucket.add(value);
-    }
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectPathsFromValue(item, bucket));
-    return;
-  }
-
-  if (typeof value === "object") {
-    Object.values(value).forEach((entry) => collectPathsFromValue(entry, bucket));
-  }
-}
-
-function getCriticalAssetList() {
-  const assets = new Set(CRITICAL_STATIC_ASSETS);
-  collectPathsFromValue(treasureRegistry, assets);
-  return Array.from(assets);
-}
-
-function preloadImage(src) {
-  return new Promise((resolve) => {
-    const img = new Image();
-
-    img.onload = () => resolve({ src, ok: true });
-    img.onerror = () => resolve({ src, ok: false });
-    img.src = src;
-
-    if (img.complete) {
-      resolve({ src, ok: true });
-    }
-  });
-}
-
-function preloadVideo(src) {
-  return new Promise((resolve) => {
-    const video = document.createElement("video");
-
-    const done = (ok) => resolve({ src, ok });
-
-    video.preload = "auto";
-    video.muted = true;
-    video.playsInline = true;
-
-    video.onloadeddata = () => done(true);
-    video.onerror = () => done(false);
-
-    video.src = src;
-  });
-}
-
-function preloadAsset(src) {
-  if (/\.(webm|mp4|mov)$/i.test(src)) {
-    return preloadVideo(src);
-  }
-  return preloadImage(src);
+  saveJSONToStorage(ATANIS_STATE_KEY, state, "Atanis state");
 }
 
 const treasureGrid = document.getElementById("treasureGrid");
-const appRoot = document.getElementById("appRoot");
-const appLoader = document.getElementById("appLoader");
-const loaderProgressFill = document.getElementById("loaderProgressFill");
-const loaderPercent = document.getElementById("loaderPercent");
-const loaderStatus = document.getElementById("loaderStatus");
-
 const treasureState = {};
 const panelState = loadPanelState();
 const atanisState = loadAtanisState();
@@ -880,54 +991,12 @@ getTreasureIds().forEach((treasureId) => {
   }
 });
 
-function updateLoaderProgress(done, total, label = "Loading...") {
-  const safeTotal = Math.max(total, 1);
-  const percent = Math.round((done / safeTotal) * 100);
-
-  if (loaderProgressFill) {
-    loaderProgressFill.style.width = `${percent}%`;
-  }
-
-  if (loaderPercent) {
-    loaderPercent.textContent = `${percent}%`;
-  }
-
-  if (loaderStatus) {
-    loaderStatus.textContent = label;
-  }
-}
-
-async function preloadCriticalAssets() {
-  const assets = getCriticalAssetList();
-  let completed = 0;
-
-  updateLoaderProgress(0, assets.length, "Collecting assets...");
-
-  for (const asset of assets) {
-    await preloadAsset(asset);
-    completed += 1;
-    updateLoaderProgress(completed, assets.length, `Loading assets (${completed}/${assets.length})`);
-  }
-}
-
-function revealApp() {
-  appRoot.setAttribute("aria-hidden", "false");
-  document.body.classList.remove("app-booting");
-  document.body.classList.add("app-ready");
-
-  window.setTimeout(() => {
-    if (appLoader) {
-      appLoader.remove();
-    }
-  }, 700);
-}
-
 function isGrindPieceComplete(piece) {
-  return !!piece.fullDrop?.obtained || Number(piece.pity?.current || 0) >= Number(piece.pity?.max || 0);
+  return !!piece.fullDrop?.obtained || toFiniteNumber(piece.pity?.current) >= toFiniteNumber(piece.pity?.max);
 }
 
 function isCraftedPieceComplete(piece) {
-  return !!piece.obtained || Number(piece.material?.current || 0) >= Number(piece.material?.required || 0);
+  return !!piece.obtained || toFiniteNumber(piece.material?.current) >= toFiniteNumber(piece.material?.required);
 }
 
 function isSimplePieceComplete(piece) {
@@ -944,15 +1013,15 @@ function isPieceComplete(piece) {
 function getPieceProgress(piece) {
   if (piece.type === "grind") {
     if (piece.fullDrop?.obtained) return 1;
-    const current = clamp(Number(piece.pity?.current) || 0, 0, Number(piece.pity?.max) || 0);
-    const max = Number(piece.pity?.max) || 0;
+    const current = clamp(toFiniteNumber(piece.pity?.current), 0, toFiniteNumber(piece.pity?.max));
+    const max = toFiniteNumber(piece.pity?.max);
     return max <= 0 ? 0 : current / max;
   }
 
   if (piece.type === "crafted") {
     if (piece.obtained) return 1;
-    const current = clamp(Number(piece.material?.current) || 0, 0, Number(piece.material?.required) || 0);
-    const required = Number(piece.material?.required) || 0;
+    const current = clamp(toFiniteNumber(piece.material?.current), 0, toFiniteNumber(piece.material?.required));
+    const required = toFiniteNumber(piece.material?.required);
     return required <= 0 ? 0 : current / required;
   }
 
@@ -992,17 +1061,112 @@ function calculateOverallProgress(treasureData) {
   return { total, completed, percent };
 }
 
+function appendSanitizedText(parent, value) {
+  parent.appendChild(document.createTextNode(String(value ?? "").replace(/<[^>]*>/g, "")));
+}
+
+function appendFormattedText(parent, value) {
+  const lines = String(value ?? "").split(/<br\s*\/?>/gi);
+  const accentPattern = /<span\s+class=["']tip-accent["']>(.*?)<\/span>/gi;
+
+  lines.forEach((line, lineIndex) => {
+    if (lineIndex > 0) {
+      parent.appendChild(document.createElement("br"));
+    }
+
+    let lastIndex = 0;
+    let match = accentPattern.exec(line);
+
+    while (match) {
+      appendSanitizedText(parent, line.slice(lastIndex, match.index));
+
+      const accent = document.createElement("span");
+      accent.className = "tip-accent";
+      appendSanitizedText(accent, match[1]);
+      parent.appendChild(accent);
+
+      lastIndex = match.index + match[0].length;
+      match = accentPattern.exec(line);
+    }
+
+    appendSanitizedText(parent, line.slice(lastIndex));
+    accentPattern.lastIndex = 0;
+  });
+}
+
+function appendStrongLabel(parent, label) {
+  const strong = document.createElement("strong");
+  strong.textContent = label;
+  parent.appendChild(strong);
+}
+
+function appendTextParts(parent, parts) {
+  parts.forEach((part) => {
+    if (typeof part === "string") {
+      parent.appendChild(document.createTextNode(part));
+      return;
+    }
+
+    if (part?.strong) {
+      appendStrongLabel(parent, part.strong);
+    }
+  });
+}
+
+function createTipRow(icon, label, value) {
+  const row = document.createElement("div");
+  row.className = "tip-row";
+
+  const accent = document.createElement("span");
+  accent.className = "tip-accent";
+  accent.setAttribute("aria-hidden", "true");
+  accent.textContent = icon;
+
+  row.appendChild(accent);
+  row.appendChild(document.createTextNode(" "));
+  appendStrongLabel(row, `${label}:`);
+  row.appendChild(document.createTextNode(" "));
+  appendFormattedText(row, value);
+
+  return row;
+}
+
+function createStatusRow(label, text, className = "sub") {
+  const row = document.createElement("div");
+  row.className = className;
+  appendStrongLabel(row, `${label}:`);
+  row.appendChild(document.createTextNode(` ${text}`));
+  return row;
+}
+
+function createHelpButton(label) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "help";
+  button.setAttribute("aria-label", label);
+  button.setAttribute("aria-expanded", "false");
+  button.textContent = "i";
+  return button;
+}
+
 function createTooltip(piece) {
   const tooltip = document.createElement("div");
   tooltip.className = "tooltip";
+  tooltip.id = `tooltip-${piece.id}`;
+  tooltip.setAttribute("role", "tooltip");
 
-  tooltip.innerHTML = `
-    <div class="tip-title">${piece.name}</div>
-    <div class="tip-row"><span class="tip-accent">📍</span> <strong>Location:</strong> ${piece.location || "Unknown"}</div>
-    <div class="tip-row"><span class="tip-accent">👾</span> <strong>Mobs:</strong> ${piece.mobs || "Unknown"}</div>
-    <div class="tip-row"><span class="tip-accent">💡</span> <strong>Tip:</strong> ${piece.tip || "No tip yet"}</div>
-    ${piece.atanisNote ? `<div class="tip-row"><span class="tip-accent">✨</span> <strong>Atanis:</strong> ${piece.atanisNote}</div>` : ""}
-  `;
+  const title = document.createElement("div");
+  title.className = "tip-title";
+  title.textContent = piece.name;
+
+  tooltip.appendChild(title);
+  tooltip.appendChild(createTipRow("📍", "Location", piece.location || "Unknown"));
+  tooltip.appendChild(createTipRow("👾", "Mobs", piece.mobs || "Unknown"));
+  tooltip.appendChild(createTipRow("💡", "Tip", piece.tip || "No tip yet"));
+
+  if (piece.atanisNote) {
+    tooltip.appendChild(createTipRow("✨", "Atanis", piece.atanisNote));
+  }
 
   return tooltip;
 }
@@ -1018,6 +1182,7 @@ function clearTooltipClasses() {
 
   document.querySelectorAll(".help.is-active").forEach((help) => {
     help.classList.remove("is-active");
+    help.setAttribute("aria-expanded", "false");
   });
 
   document.querySelectorAll(".tooltip").forEach((tooltip) => {
@@ -1065,6 +1230,8 @@ function createChevron() {
   svg.setAttribute("stroke-width", "2");
   svg.setAttribute("stroke-linecap", "round");
   svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
   svg.classList.add("panel-chevron");
 
   const polyline = document.createElementNS(svgNS, "polyline");
@@ -1074,7 +1241,16 @@ function createChevron() {
   return svg;
 }
 
-function createInlineIconLabel(iconPath, labelHTML) {
+function createIcon(src, alt, className = "icon") {
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = alt || "";
+  img.className = className;
+  img.loading = "lazy";
+  return img;
+}
+
+function createInlineIconLabel(iconPath, labelParts) {
   const wrapper = document.createElement("span");
   wrapper.className = "inline-icon-label";
 
@@ -1083,7 +1259,7 @@ function createInlineIconLabel(iconPath, labelHTML) {
   }
 
   const text = document.createElement("span");
-  text.innerHTML = labelHTML;
+  appendTextParts(text, Array.isArray(labelParts) ? labelParts : [String(labelParts ?? "")]);
   wrapper.appendChild(text);
 
   return wrapper;
@@ -1124,7 +1300,7 @@ function positionTooltip(help, tooltip) {
   tooltip.style.display = "none";
 }
 
-function markTooltipOpen(help) {
+function markTooltipOpen(help, tooltip) {
   const piece = help.closest(".piece");
   const panel = help.closest(".treasure-panel");
 
@@ -1137,12 +1313,13 @@ function markTooltipOpen(help) {
   }
 
   help.classList.add("is-active");
+  help.setAttribute("aria-expanded", "true");
 }
 
 function showTooltip(help, tooltip) {
   closeAllTooltips();
   positionTooltip(help, tooltip);
-  markTooltipOpen(help);
+  markTooltipOpen(help, tooltip);
   tooltip.style.display = "block";
 }
 
@@ -1152,6 +1329,8 @@ function hideTooltip(tooltip) {
 }
 
 function attachTooltipHandlers(help, tooltip) {
+  help.setAttribute("aria-describedby", tooltip.id);
+
   help.addEventListener("mouseenter", () => {
     if (window.innerWidth <= 760) return;
     showTooltip(help, tooltip);
@@ -1189,6 +1368,12 @@ function attachTooltipHandlers(help, tooltip) {
 
     showTooltip(help, tooltip);
   });
+
+  help.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    hideTooltip(tooltip);
+    help.focus();
+  });
 }
 
 function createCombineButton(treasureData) {
@@ -1200,20 +1385,40 @@ function createCombineButton(treasureData) {
   button.className = "combine-help-btn";
   button.setAttribute("aria-label", `Show assembly info for ${treasureData.name}`);
   button.setAttribute("aria-expanded", "false");
-  button.innerHTML = `<span class="combine-help-icon">⚒</span>`;
+
+  const buttonIcon = document.createElement("span");
+  buttonIcon.className = "combine-help-icon";
+  buttonIcon.setAttribute("aria-hidden", "true");
+  buttonIcon.textContent = "⚒";
+  button.appendChild(buttonIcon);
 
   const tooltip = document.createElement("div");
   tooltip.className = "combine-tooltip";
+  tooltip.id = `combine-tooltip-${treasureData.id}`;
+  tooltip.setAttribute("role", "dialog");
+  tooltip.setAttribute("aria-label", `${treasureData.name} assembly info`);
+  button.setAttribute("aria-controls", tooltip.id);
 
   const combineImage = treasureData.combine?.image || "";
   const combineText = treasureData.combine?.text || "Arrange the required pieces in your inventory.";
 
-  tooltip.innerHTML = `
-    <div class="combine-tooltip-inner">
-      ${combineImage ? `<img src="${combineImage}" alt="${treasureData.name} combine layout" class="combine-tooltip-image" loading="lazy" decoding="async">` : ""}
-      <p class="combine-tooltip-text">${combineText}</p>
-    </div>
-  `;
+  const tooltipInner = document.createElement("div");
+  tooltipInner.className = "combine-tooltip-inner";
+
+  if (combineImage) {
+    const image = document.createElement("img");
+    image.src = combineImage;
+    image.alt = `${treasureData.name} combine layout`;
+    image.className = "combine-tooltip-image";
+    image.loading = "lazy";
+    tooltipInner.appendChild(image);
+  }
+
+  const tooltipText = document.createElement("p");
+  tooltipText.className = "combine-tooltip-text";
+  tooltipText.textContent = combineText;
+  tooltipInner.appendChild(tooltipText);
+  tooltip.appendChild(tooltipInner);
 
   function openTooltip() {
     closeAllCombineTooltips();
@@ -1247,6 +1452,12 @@ function createCombineButton(treasureData) {
     }
   });
 
+  button.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    closeTooltip();
+    button.focus();
+  });
+
   wrap.appendChild(button);
   wrap.appendChild(tooltip);
 
@@ -1264,7 +1475,7 @@ function getAtanisEligiblePieces() {
       if (piece.type !== "grind" || !piece.atanisNote || !piece.pity) return;
 
       const complete = isGrindPieceComplete(piece);
-      const remaining = Math.max(0, piece.pity.max - piece.pity.current);
+      const remaining = Math.max(0, toFiniteNumber(piece.pity.max) - toFiniteNumber(piece.pity.current));
 
       eligible.push({
         treasureId,
@@ -1281,7 +1492,7 @@ function getAtanisEligiblePieces() {
 }
 
 function getAtanisDistribution() {
-  const total = clamp(Number(atanisState.total) || 0, 0, 999999);
+  const total = clamp(toFiniteNumber(atanisState.total), 0, 999999);
   let remainingPool = total;
 
   const targets = getAtanisEligiblePieces()
@@ -1309,45 +1520,85 @@ function getAtanisDistribution() {
   return { total, remainingPool, allocations, allocationMap };
 }
 
-function createAtanisSummaryMarkup(distribution) {
+function createAtanisSummaryNode(distribution) {
+  const fragment = document.createDocumentFragment();
+
   if (!distribution.total) {
-    return `
-      <p class="atanis-summary-empty">
-        Add your total Atanis here to get a suggested pity distribution across both potion sections.
-      </p>
-    `;
+    const empty = document.createElement("p");
+    empty.className = "atanis-summary-empty";
+    empty.textContent = "Add your total Atanis here to get a suggested pity distribution across both potion sections.";
+    fragment.appendChild(empty);
+    return fragment;
   }
+
+  const currentPool = document.createElement("p");
+  currentPool.className = "atanis-summary-line";
+  currentPool.appendChild(document.createTextNode("Current pool: "));
+
+  const total = document.createElement("strong");
+  total.textContent = distribution.total;
+  currentPool.appendChild(total);
+  currentPool.appendChild(document.createTextNode(" Atanis' Element"));
+  fragment.appendChild(currentPool);
 
   if (!distribution.allocations.length) {
-    return `
-      <p class="atanis-summary-line">Current pool: <strong>${distribution.total}</strong> Atanis' Element</p>
-      <p class="atanis-summary-empty">No active HP/MP pity targets need Atanis support right now.</p>
-    `;
+    const empty = document.createElement("p");
+    empty.className = "atanis-summary-empty";
+    empty.textContent = "No active HP/MP pity targets need Atanis support right now.";
+    fragment.appendChild(empty);
+    return fragment;
   }
 
-  return `
-    <p class="atanis-summary-line">Current pool: <strong>${distribution.total}</strong> Atanis' Element</p>
-    <ul class="atanis-allocation-list">
-      ${distribution.allocations.map((entry) => `
-        <li class="atanis-allocation-item">
-          <div class="atanis-allocation-main">
-            <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon small" width="18" height="18">
-            <span>
-              <strong>${entry.piece.pity.item}</strong>
-              <span class="atanis-allocation-meta"> — ${entry.used}/${entry.remaining} suggested</span>
-            </span>
-          </div>
-          <span class="atanis-allocation-tag ${entry.completesPiece ? "complete" : "partial"}">
-            ${entry.completesPiece ? "Complete" : `Partial +${entry.used}`}
-          </span>
-        </li>
-      `).join("")}
-    </ul>
-    <div class="atanis-summary-footer">
-      <span>Priority: smallest remaining pity gaps first.</span>
-      <span>Unused Atanis left: <strong>${distribution.remainingPool}</strong></span>
-    </div>
-  `;
+  const list = document.createElement("ul");
+  list.className = "atanis-allocation-list";
+
+  distribution.allocations.forEach((entry) => {
+    const item = document.createElement("li");
+    item.className = "atanis-allocation-item";
+
+    const main = document.createElement("div");
+    main.className = "atanis-allocation-main";
+    main.appendChild(createIcon("icons/atanis-element.webp", "Atanis' Element", "icon small"));
+
+    const text = document.createElement("span");
+    const itemName = document.createElement("strong");
+    itemName.textContent = entry.piece.pity.item;
+
+    const meta = document.createElement("span");
+    meta.className = "atanis-allocation-meta";
+    meta.textContent = ` — ${entry.used}/${entry.remaining} suggested`;
+
+    text.appendChild(itemName);
+    text.appendChild(meta);
+    main.appendChild(text);
+
+    const tag = document.createElement("span");
+    tag.className = `atanis-allocation-tag ${entry.completesPiece ? "complete" : "partial"}`;
+    tag.textContent = entry.completesPiece ? "Complete" : `Partial +${entry.used}`;
+
+    item.appendChild(main);
+    item.appendChild(tag);
+    list.appendChild(item);
+  });
+
+  const footer = document.createElement("div");
+  footer.className = "atanis-summary-footer";
+
+  const priority = document.createElement("span");
+  priority.textContent = "Priority: smallest remaining pity gaps first.";
+
+  const unused = document.createElement("span");
+  unused.appendChild(document.createTextNode("Unused Atanis left: "));
+  const remaining = document.createElement("strong");
+  remaining.textContent = distribution.remainingPool;
+  unused.appendChild(remaining);
+
+  footer.appendChild(priority);
+  footer.appendChild(unused);
+
+  fragment.appendChild(list);
+  fragment.appendChild(footer);
+  return fragment;
 }
 
 function createAtanisHelper() {
@@ -1356,34 +1607,60 @@ function createAtanisHelper() {
 
   const distribution = getAtanisDistribution();
 
-  helper.innerHTML = `
-    <div class="atanis-helper-head">
-      <div class="atanis-helper-copy">
-        <div class="atanis-helper-title-row">
-          <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon large atanis-helper-icon" width="32" height="32">
-          <div>
-            <h3 class="atanis-helper-title">Shared Atanis' Element Helper</h3>
-            <p class="atanis-helper-note">
-              Enter your total Atanis Elements. The tracker suggests the best distribution across HP & MP potion pity pieces without auto-applying anything.
-            </p>
-          </div>
-        </div>
-      </div>
+  const head = document.createElement("div");
+  head.className = "atanis-helper-head";
 
-      <label class="atanis-input-group">
-        <span class="atanis-input-label">Atanis Elements</span>
-        <input type="number" min="0" step="1" value="${distribution.total}" class="atanis-total-input" data-atanis-input>
-      </label>
-    </div>
+  const copy = document.createElement("div");
+  copy.className = "atanis-helper-copy";
 
-    <div class="atanis-helper-summary">
-      ${createAtanisSummaryMarkup(distribution)}
-    </div>
-  `;
+  const titleRow = document.createElement("div");
+  titleRow.className = "atanis-helper-title-row";
+  titleRow.appendChild(createIcon("icons/atanis-element.webp", "Atanis' Element", "icon large atanis-helper-icon"));
 
-  const input = helper.querySelector("[data-atanis-input]");
+  const textWrap = document.createElement("div");
+
+  const title = document.createElement("h3");
+  title.className = "atanis-helper-title";
+  title.textContent = "Shared Atanis' Element Helper";
+
+  const note = document.createElement("p");
+  note.className = "atanis-helper-note";
+  note.textContent = "Enter your total Atanis Elements. The tracker suggests the best distribution across HP & MP potion pity pieces without auto-applying anything.";
+
+  textWrap.appendChild(title);
+  textWrap.appendChild(note);
+  titleRow.appendChild(textWrap);
+  copy.appendChild(titleRow);
+
+  const inputGroup = document.createElement("label");
+  inputGroup.className = "atanis-input-group";
+
+  const inputLabel = document.createElement("span");
+  inputLabel.className = "atanis-input-label";
+  inputLabel.textContent = "Atanis Elements";
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = "0";
+  input.step = "1";
+  input.value = distribution.total;
+  input.className = "atanis-total-input";
+  input.setAttribute("data-atanis-input", "");
+
+  inputGroup.appendChild(inputLabel);
+  inputGroup.appendChild(input);
+  head.appendChild(copy);
+  head.appendChild(inputGroup);
+
+  const summary = document.createElement("div");
+  summary.className = "atanis-helper-summary";
+  summary.replaceChildren(createAtanisSummaryNode(distribution));
+
+  helper.appendChild(head);
+  helper.appendChild(summary);
+
   input.addEventListener("input", () => {
-    const safeValue = clamp(Number(input.value) || 0, 0, 999999);
+    const safeValue = clamp(toFiniteNumber(input.value), 0, 999999);
     atanisState.total = safeValue;
     input.value = safeValue;
     saveAtanisState(atanisState);
@@ -1399,35 +1676,65 @@ function createAtanisMirrorHelper() {
 
   const distribution = getAtanisDistribution();
 
-  helper.innerHTML = `
-    <div class="atanis-mirror-head">
-      <div class="atanis-mirror-copy">
-        <div class="atanis-mirror-title-row">
-          <img src="icons/atanis-element.webp" alt="Atanis' Element" class="icon large atanis-helper-icon" width="32" height="32">
-          <div>
-            <h3 class="atanis-mirror-title">Shared Atanis Input</h3>
-            <p class="atanis-mirror-note">
-              This is the same shared Atanis pool used by the HP potion helper.
-            </p>
-            <div class="atanis-shared-note">Shared with HP potion</div>
-          </div>
-        </div>
-      </div>
+  const head = document.createElement("div");
+  head.className = "atanis-mirror-head";
 
-      <label class="atanis-mirror-input-group">
-        <span class="atanis-mirror-input-label">Atanis Elements</span>
-        <input type="number" min="0" step="1" value="${distribution.total}" class="atanis-mirror-input" data-atanis-mirror-input>
-      </label>
-    </div>
+  const copy = document.createElement("div");
+  copy.className = "atanis-mirror-copy";
 
-    <div class="atanis-mirror-summary">
-      ${createAtanisSummaryMarkup(distribution)}
-    </div>
-  `;
+  const titleRow = document.createElement("div");
+  titleRow.className = "atanis-mirror-title-row";
+  titleRow.appendChild(createIcon("icons/atanis-element.webp", "Atanis' Element", "icon large atanis-helper-icon"));
 
-  const input = helper.querySelector("[data-atanis-mirror-input]");
+  const textWrap = document.createElement("div");
+
+  const title = document.createElement("h3");
+  title.className = "atanis-mirror-title";
+  title.textContent = "Shared Atanis Input";
+
+  const note = document.createElement("p");
+  note.className = "atanis-mirror-note";
+  note.textContent = "This is the same shared Atanis pool used by the HP potion helper.";
+
+  const sharedNote = document.createElement("div");
+  sharedNote.className = "atanis-shared-note";
+  sharedNote.textContent = "Shared with HP potion";
+
+  textWrap.appendChild(title);
+  textWrap.appendChild(note);
+  textWrap.appendChild(sharedNote);
+  titleRow.appendChild(textWrap);
+  copy.appendChild(titleRow);
+
+  const inputGroup = document.createElement("label");
+  inputGroup.className = "atanis-mirror-input-group";
+
+  const inputLabel = document.createElement("span");
+  inputLabel.className = "atanis-mirror-input-label";
+  inputLabel.textContent = "Atanis Elements";
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = "0";
+  input.step = "1";
+  input.value = distribution.total;
+  input.className = "atanis-mirror-input";
+  input.setAttribute("data-atanis-mirror-input", "");
+
+  inputGroup.appendChild(inputLabel);
+  inputGroup.appendChild(input);
+  head.appendChild(copy);
+  head.appendChild(inputGroup);
+
+  const summary = document.createElement("div");
+  summary.className = "atanis-mirror-summary";
+  summary.replaceChildren(createAtanisSummaryNode(distribution));
+
+  helper.appendChild(head);
+  helper.appendChild(summary);
+
   input.addEventListener("input", () => {
-    const safeValue = clamp(Number(input.value) || 0, 0, 999999);
+    const safeValue = clamp(toFiniteNumber(input.value), 0, 999999);
     atanisState.total = safeValue;
     input.value = safeValue;
     saveAtanisState(atanisState);
@@ -1444,7 +1751,7 @@ function refreshAtanisUI() {
     const summary = helper.querySelector(".atanis-helper-summary");
     const input = helper.querySelector("[data-atanis-input]");
 
-    if (summary) summary.innerHTML = createAtanisSummaryMarkup(distribution);
+    if (summary) summary.replaceChildren(createAtanisSummaryNode(distribution));
     if (input) input.value = distribution.total;
   });
 
@@ -1452,7 +1759,7 @@ function refreshAtanisUI() {
     const summary = helper.querySelector(".atanis-mirror-summary");
     const input = helper.querySelector("[data-atanis-mirror-input]");
 
-    if (summary) summary.innerHTML = createAtanisSummaryMarkup(distribution);
+    if (summary) summary.replaceChildren(createAtanisSummaryNode(distribution));
     if (input) input.value = distribution.total;
   });
 
@@ -1460,14 +1767,19 @@ function refreshAtanisUI() {
     const token = node.getAttribute("data-atanis-piece-token");
     const allocation = distribution.allocationMap.get(token);
 
+    const supportLabel = document.createElement("strong");
+    supportLabel.textContent = "Atanis Support:";
+
     if (!allocation) {
-      node.innerHTML = `<strong>Atanis Support:</strong> Available through the shared potion helper.`;
+      node.replaceChildren(supportLabel, document.createTextNode(" Available through the shared potion helper."));
       return;
     }
 
-    node.innerHTML = allocation.completesPiece
-      ? `<strong>Atanis Support:</strong> Suggested to complete this pity piece (${allocation.used}/${allocation.remaining}).`
-      : `<strong>Atanis Support:</strong> Suggested +${allocation.used} here from your shared pool.`;
+    const message = allocation.completesPiece
+      ? ` Suggested to complete this pity piece (${allocation.used}/${allocation.remaining}).`
+      : ` Suggested +${allocation.used} here from your shared pool.`;
+
+    node.replaceChildren(supportLabel, document.createTextNode(message));
   });
 }
 
@@ -1484,6 +1796,7 @@ function createSimplePiece(piece, treasureId, onUpdate) {
   checkbox.type = "checkbox";
   checkbox.className = "checkbox";
   checkbox.checked = !!piece.obtained;
+  checkbox.setAttribute("aria-label", `${piece.name} obtained`);
 
   const titleText = document.createElement("span");
   titleText.className = "piece-name";
@@ -1502,10 +1815,7 @@ function createSimplePiece(piece, treasureId, onUpdate) {
   wrapper.appendChild(header);
 
   if (!isKrogdalo) {
-    const noteRow = document.createElement("div");
-    noteRow.className = "sub simple-note";
-    noteRow.innerHTML = `<strong>Status:</strong> Pure drop / milestone item. Check when obtained.`;
-    wrapper.appendChild(noteRow);
+    wrapper.appendChild(createStatusRow("Status", "Pure drop / milestone item. Check when obtained.", "sub simple-note"));
 
     const tooltip = createTooltip(piece);
     wrapper.appendChild(tooltip);
@@ -1513,9 +1823,7 @@ function createSimplePiece(piece, treasureId, onUpdate) {
     const helpRow = document.createElement("div");
     helpRow.className = "sub";
 
-    const help = document.createElement("span");
-    help.className = "help";
-    help.textContent = "i";
+    const help = createHelpButton(`Show item details for ${piece.name}`);
 
     helpRow.appendChild(help);
     helpRow.appendChild(document.createTextNode("Item details"));
@@ -1552,6 +1860,7 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
   mainCheckbox.type = "checkbox";
   mainCheckbox.className = "checkbox";
   mainCheckbox.disabled = true;
+  mainCheckbox.setAttribute("aria-label", `${piece.name} completion status`);
 
   const titleText = document.createElement("span");
   titleText.className = "piece-name";
@@ -1573,12 +1882,13 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
   fullDropCheckbox.type = "checkbox";
   fullDropCheckbox.className = "checkbox";
   fullDropCheckbox.checked = !!piece.fullDrop.obtained;
+  fullDropCheckbox.setAttribute("aria-label", `${piece.fullDrop.item} full drop obtained`);
 
   fullDropRow.appendChild(fullDropCheckbox);
   fullDropRow.appendChild(
     createInlineIconLabel(
       piece.fullDrop.icon,
-      `<strong>Full Drop:</strong> ${piece.fullDrop.item}`
+      [{ strong: "Full Drop:" }, ` ${piece.fullDrop.item}`]
     )
   );
   wrapper.appendChild(fullDropRow);
@@ -1588,7 +1898,7 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
 
   const pityLabel = createInlineIconLabel(
     piece.pity.icon,
-    `<strong>${piece.pity.item}</strong>`
+    [{ strong: piece.pity.item }]
   );
 
   const pityInput = document.createElement("input");
@@ -1597,13 +1907,12 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
   pityInput.max = String(piece.pity.max);
   pityInput.value = piece.pity.current;
   pityInput.className = "pity-input";
+  pityInput.setAttribute("aria-label", `${piece.pity.item} pity count`);
 
   const pityMax = document.createElement("span");
   pityMax.textContent = `/ ${piece.pity.max}`;
 
-  const help = document.createElement("span");
-  help.className = "help";
-  help.textContent = "i";
+  const help = createHelpButton(`Show item details for ${piece.name}`);
 
   pityRow.appendChild(pityLabel);
   pityRow.appendChild(pityInput);
@@ -1624,7 +1933,7 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
   exchangeRow.appendChild(
     createInlineIconLabel(
       piece.exchange.icon,
-      `<strong>Exchange Item:</strong> ${piece.exchange.item}`
+      [{ strong: "Exchange Item:" }, ` ${piece.exchange.item}`]
     )
   );
   wrapper.appendChild(exchangeRow);
@@ -1635,7 +1944,9 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
 
     const atanisLabel = document.createElement("span");
     atanisLabel.setAttribute("data-atanis-piece-token", `${treasureId}:${pieceIndex}`);
-    atanisLabel.innerHTML = `<strong>Atanis Support:</strong> Available through the shared potion helper.`;
+    const supportLabel = document.createElement("strong");
+    supportLabel.textContent = "Atanis Support:";
+    atanisLabel.replaceChildren(supportLabel, document.createTextNode(" Available through the shared potion helper."));
 
     atanisRow.appendChild(createIcon("icons/atanis-element.webp", "Atanis' Element", "icon small"));
     atanisRow.appendChild(atanisLabel);
@@ -1671,8 +1982,7 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
   });
 
   pityInput.addEventListener("input", () => {
-    const raw = Number(pityInput.value);
-    const safeValue = clamp(Number.isNaN(raw) ? 0 : raw, 0, piece.pity.max);
+    const safeValue = clamp(toFiniteNumber(pityInput.value), 0, piece.pity.max);
 
     piece.pity.current = safeValue;
     pityInput.value = safeValue;
@@ -1698,6 +2008,7 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   checkbox.type = "checkbox";
   checkbox.className = "checkbox";
   checkbox.checked = !!piece.obtained;
+  checkbox.setAttribute("aria-label", `${piece.name} obtained`);
 
   const titleText = document.createElement("span");
   titleText.className = "piece-name";
@@ -1720,7 +2031,7 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   materialRow.appendChild(
     createInlineIconLabel(
       piece.material.icon,
-      `<strong>Material:</strong> ${piece.material.item}`
+      [{ strong: "Material:" }, ` ${piece.material.item}`]
     )
   );
   wrapper.appendChild(materialRow);
@@ -1729,7 +2040,7 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   materialProgressRow.className = "sub material-progress-row";
 
   const materialLabel = document.createElement("span");
-  materialLabel.innerHTML = `<strong>Progress</strong>`;
+  appendStrongLabel(materialLabel, "Progress");
 
   const materialInput = document.createElement("input");
   materialInput.type = "number";
@@ -1737,13 +2048,12 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   materialInput.max = String(piece.material.required);
   materialInput.value = piece.material.current;
   materialInput.className = "material-input";
+  materialInput.setAttribute("aria-label", `${piece.material.item} material count`);
 
   const materialRequired = document.createElement("span");
   materialRequired.textContent = `/ ${piece.material.required}`;
 
-  const help = document.createElement("span");
-  help.className = "help";
-  help.textContent = "i";
+  const help = createHelpButton(`Show item details for ${piece.name}`);
 
   materialProgressRow.appendChild(materialLabel);
   materialProgressRow.appendChild(materialInput);
@@ -1759,10 +2069,7 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   bar.appendChild(fill);
   wrapper.appendChild(bar);
 
-  const noteRow = document.createElement("div");
-  noteRow.className = "sub crafted-note";
-  noteRow.innerHTML = `<strong>Status:</strong> Auto-completes at required material count, or can be checked manually.`;
-  wrapper.appendChild(noteRow);
+  wrapper.appendChild(createStatusRow("Status", "Auto-completes at required material count, or can be checked manually.", "sub crafted-note"));
 
   const tooltip = createTooltip(piece);
   wrapper.appendChild(tooltip);
@@ -1797,8 +2104,7 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   });
 
   materialInput.addEventListener("input", () => {
-    const raw = Number(materialInput.value);
-    const safeValue = clamp(Number.isNaN(raw) ? 0 : raw, 0, piece.material.required);
+    const safeValue = clamp(toFiniteNumber(materialInput.value), 0, piece.material.required);
 
     piece.material.current = safeValue;
 
@@ -1831,6 +2137,7 @@ function createMarketFlavorNode(treasureId) {
 
 function createTreasurePanel(treasureId) {
   const treasureData = treasureState[treasureId];
+  const treeId = `${treasureId}-tree`;
   const panel = document.createElement("section");
   panel.className = `treasure-panel treasure-${treasureId}`;
 
@@ -1855,30 +2162,33 @@ function createTreasurePanel(treasureId) {
   const titleRow = document.createElement("div");
   titleRow.className = "panel-title-row";
 
-  const titleGroup = document.createElement("div");
+  const toggleButton = document.createElement("button");
+  toggleButton.type = "button";
+  toggleButton.className = "panel-toggle-button";
+  toggleButton.setAttribute("aria-controls", treeId);
+  toggleButton.setAttribute("aria-label", `Toggle ${treasureData.name} progress panel`);
+
+  const titleGroup = document.createElement("span");
   titleGroup.className = "panel-title-group";
 
   titleGroup.appendChild(createChevron());
 
   if (treasureData.icon) {
-    titleGroup.appendChild(createIcon(treasureData.icon, treasureData.name, "icon panel-icon"));
+    titleGroup.appendChild(createIcon(treasureData.icon, "", "icon panel-icon"));
   }
 
-  const titleMain = document.createElement("div");
+  const titleMain = document.createElement("span");
   titleMain.className = "panel-title-main";
 
-  const titleLine = document.createElement("div");
+  const titleLine = document.createElement("span");
   titleLine.className = "panel-title-line";
 
-  const title = document.createElement("h2");
+  const title = document.createElement("span");
+  title.className = "panel-heading";
   title.textContent = treasureData.name;
   titleLine.appendChild(title);
 
-  if (treasureData.combine?.image || treasureData.combine?.text) {
-    titleLine.appendChild(createCombineButton(treasureData));
-  }
-
-  const metaRow = document.createElement("div");
+  const metaRow = document.createElement("span");
   metaRow.className = "panel-meta-row";
 
   const typePill = createPanelPill(getTreasureTypeLabel(treasureData), "type");
@@ -1891,7 +2201,12 @@ function createTreasurePanel(treasureId) {
   titleMain.appendChild(metaRow);
 
   titleGroup.appendChild(titleMain);
-  titleRow.appendChild(titleGroup);
+  toggleButton.appendChild(titleGroup);
+  titleRow.appendChild(toggleButton);
+
+  if (treasureData.combine?.image || treasureData.combine?.text) {
+    titleRow.appendChild(createCombineButton(treasureData));
+  }
 
   const subtitle = document.createElement("p");
   subtitle.className = "panel-subtitle";
@@ -1946,9 +2261,15 @@ function createTreasurePanel(treasureId) {
 
   const tree = document.createElement("section");
   tree.className = "tree";
+  tree.id = treeId;
   panel.appendChild(tree);
 
-  let hasRenderedTree = false;
+  function syncPanelExpandedState() {
+    const expanded = !panel.classList.contains("collapsed");
+    toggleButton.setAttribute("aria-expanded", String(expanded));
+    tree.setAttribute("aria-hidden", String(!expanded));
+    tree.inert = !expanded;
+  }
 
   function updateOverallUI() {
     const { total, completed, percent } = calculateOverallProgress(treasureData);
@@ -1964,7 +2285,7 @@ function createTreasurePanel(treasureId) {
   }
 
   function rerenderTree() {
-    tree.innerHTML = "";
+    tree.replaceChildren();
 
     if (treasureId === "ornette") {
       tree.appendChild(createAtanisHelper());
@@ -1984,32 +2305,21 @@ function createTreasurePanel(treasureId) {
       }
     });
 
-    hasRenderedTree = true;
-    panel.dataset.rendered = "true";
     updateOverallUI();
   }
 
-  function ensureTreeRendered() {
-    if (hasRenderedTree) return;
-    rerenderTree();
-  }
-
-  updateOverallUI();
-
-  if (!panel.classList.contains("collapsed")) {
-    ensureTreeRendered();
-  }
-
-  panelTop.addEventListener("click", (event) => {
-    if (event.target.closest("button")) return;
-    if (event.target.closest(".help")) return;
-    if (event.target.closest(".combine-help-wrap")) return;
-    if (event.target.closest("input")) return;
-
+  toggleButton.addEventListener("click", () => {
     const isCurrentlyCollapsed = panel.classList.contains("collapsed");
 
     document.querySelectorAll(".treasure-panel").forEach((p) => {
       p.classList.add("collapsed");
+      const button = p.querySelector(".panel-toggle-button");
+      const panelTree = p.querySelector(".tree");
+      if (button) button.setAttribute("aria-expanded", "false");
+      if (panelTree) {
+        panelTree.setAttribute("aria-hidden", "true");
+        panelTree.inert = true;
+      }
     });
 
     Object.keys(panelState).forEach((key) => {
@@ -2019,10 +2329,10 @@ function createTreasurePanel(treasureId) {
     if (isCurrentlyCollapsed) {
       panel.classList.remove("collapsed");
       panelState[treasureId] = true;
-      ensureTreeRendered();
-      refreshAtanisUI();
+      registerPanelVisual(panel);
     }
 
+    syncPanelExpandedState();
     savePanelState(panelState);
   });
 
@@ -2032,66 +2342,143 @@ function createTreasurePanel(treasureId) {
     const confirmed = window.confirm(`Reset all saved progress for ${treasureData.name}?`);
     if (!confirmed) return;
 
-    localStorage.removeItem(getStorageKey(treasureId));
+    if (!removeStorageItem(getStorageKey(treasureId), `${treasureId} progress`)) return;
     treasureState[treasureId] = getDefaultTreasureData(treasureId);
 
     const freshPanel = createTreasurePanel(treasureId);
     panel.replaceWith(freshPanel);
+    registerPanelVisual(freshPanel);
     refreshAtanisUI();
   });
+
+  rerenderTree();
+  syncPanelExpandedState();
 
   return panel;
 }
 
 function renderAllTreasures() {
-  treasureGrid.innerHTML = "";
+  treasureGrid.replaceChildren();
 
   getTreasureIds().forEach((treasureId) => {
     treasureGrid.appendChild(createTreasurePanel(treasureId));
   });
 
   refreshAtanisUI();
+  registerAllPanelVisuals();
 }
 
-function setupHowItWorksModal() {
-  const modal = document.getElementById("howItWorksModal");
-  const openBtn = document.getElementById("howItWorksBtn");
-  const closeBtn = document.getElementById("howItWorksClose");
+let panelVisualObserver = null;
 
-  if (!modal || !openBtn || !closeBtn) return;
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
-  function openModal() {
-    modal.classList.add("open");
-    modal.setAttribute("aria-hidden", "false");
-    openBtn.setAttribute("aria-expanded", "true");
-    document.body.classList.add("modal-open");
+function preloadImage(src) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+    image.src = src;
+  });
+}
+
+function ensurePanelVisualObserver() {
+  if (panelVisualObserver || !("IntersectionObserver" in window)) {
+    return;
   }
 
-  function closeModal() {
-    modal.classList.remove("open");
-    modal.setAttribute("aria-hidden", "true");
-    openBtn.setAttribute("aria-expanded", "false");
-    document.body.classList.remove("modal-open");
+  panelVisualObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("panel-visual-ready");
+      panelVisualObserver.unobserve(entry.target);
+    });
+  }, {
+    rootMargin: "640px 0px"
+  });
+}
+
+function registerPanelVisual(panel) {
+  if (!panel) return;
+
+  if (!("IntersectionObserver" in window)) {
+    panel.classList.add("panel-visual-ready");
+    return;
   }
 
-  openBtn.addEventListener("click", openModal);
-  closeBtn.addEventListener("click", closeModal);
+  ensurePanelVisualObserver();
 
-  modal.addEventListener("click", (event) => {
-    if (event.target.matches("[data-help-close]")) {
-      closeModal();
-    }
-  });
+  if (!panel.dataset.panelVisualRegistered) {
+    panelVisualObserver.observe(panel);
+    panel.dataset.panelVisualRegistered = "true";
+  }
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && modal.classList.contains("open")) {
-      closeModal();
-    }
+  if (!panel.classList.contains("collapsed")) {
+    panel.classList.add("panel-visual-ready");
+  }
+}
+
+function registerAllPanelVisuals() {
+  document.querySelectorAll(".treasure-panel").forEach((panel) => {
+    registerPanelVisual(panel);
   });
+}
+
+function hideStartupLoader() {
+  const loader = document.getElementById("startupLoader");
+  document.body.classList.remove("is-loading");
+
+  if (!loader) return;
+
+  loader.classList.add("is-hidden");
+  window.setTimeout(() => {
+    loader.remove();
+  }, 260);
+}
+
+function hasSeenVisualIntroThisSession() {
+  return readStorageValue(sessionStorage, VISUAL_INTRO_SESSION_KEY) === "1";
+}
+
+function hasSeenVisualIntroRecently() {
+  const stored = Number(readStorageValue(localStorage, VISUAL_INTRO_LOCAL_KEY));
+  return Number.isFinite(stored) && (Date.now() - stored) < VISUAL_INTRO_RECENT_MS;
+}
+
+function markVisualIntroSeen() {
+  writeStorageValue(sessionStorage, VISUAL_INTRO_SESSION_KEY, "1");
+  writeStorageValue(localStorage, VISUAL_INTRO_LOCAL_KEY, String(Date.now()));
+}
+
+async function initializeVisualExperience() {
+  const backgroundReady = preloadImage("images/background-main.webp");
+  const seenThisSession = hasSeenVisualIntroThisSession();
+  const seenRecently = hasSeenVisualIntroRecently();
+
+  if (seenThisSession) {
+    hideStartupLoader();
+    await backgroundReady;
+    document.body.classList.add("body-visual-ready");
+    markVisualIntroSeen();
+    return;
+  }
+
+  await Promise.allSettled([
+    wait(seenRecently ? 180 : 520),
+    backgroundReady
+  ]);
+
+  document.body.classList.add("body-visual-ready");
+  hideStartupLoader();
+  markVisualIntroSeen();
 }
 
 document.addEventListener("click", (event) => {
-  if (!event.target.classList.contains("help")) {
+  if (!event.target.closest(".help")) {
     closeAllTooltips();
   }
 
@@ -2105,23 +2492,5 @@ window.addEventListener("resize", () => {
   closeAllCombineTooltips();
 });
 
-async function bootApp() {
-  try {
-    updateLoaderProgress(0, 1, "Preparing tracker...");
-    await preloadCriticalAssets();
-    updateLoaderProgress(1, 1, "Rendering tracker...");
-    renderAllTreasures();
-    setupHowItWorksModal();
-
-    requestAnimationFrame(() => {
-      revealApp();
-    });
-  } catch (error) {
-    console.error("Failed during app boot:", error);
-    renderAllTreasures();
-    setupHowItWorksModal();
-    revealApp();
-  }
-}
-
-bootApp();
+renderAllTreasures();
+initializeVisualExperience();

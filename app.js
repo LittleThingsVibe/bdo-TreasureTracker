@@ -621,6 +621,152 @@ const treasureRegistry = {
         tip: "Obtain Mythical Doom (T10 Hell Horse)."
       }
     ]
+  },
+
+  nostos: {
+    id: "nostos",
+    name: "Star of Nostos",
+    isNew: true,
+    subtitle: "Gathering Life Skill Treasure",
+    icon: "icons/star-of-nostos.png",
+    combine: {
+      image: "assets/combi-nostos.png",
+      text: "Combine the six higher-tier materials in Yaz's Combinables Pouch. Disable Auto Arrange before combining."
+    },
+    pieces: [
+      {
+        name: "Terrashard",
+        activity: "Hoe Gathering",
+        icon: "icons/terrashard.png",
+        type: "lifeskillCraft",
+        obtained: false,
+        lowerMaterial: {
+          item: "Cracked Terrashard",
+          icon: "icons/cracked-terrashard.png",
+          current: 0,
+          required: 1000
+        },
+        essence: {
+          item: "Essence of Nature",
+          icon: "icons/essence-of-nature.png",
+          current: 0,
+          required: 100
+        },
+        location: "Hoe Gathering",
+        mobs: "Gathering activity",
+        tip: "Gather Cracked Terrashard through Hoe Gathering, then use Simple Alchemy with Essence of Nature."
+      },
+      {
+        name: "Eonwood Round",
+        activity: "Lumbering",
+        icon: "icons/eonwood-round.png",
+        type: "lifeskillCraft",
+        obtained: false,
+        lowerMaterial: {
+          item: "Withered Wood Chip",
+          icon: "icons/withered-wood-chip.png",
+          current: 0,
+          required: 1000
+        },
+        essence: {
+          item: "Essence of Nature",
+          icon: "icons/essence-of-nature.png",
+          current: 0,
+          required: 100
+        },
+        location: "Lumbering",
+        mobs: "Gathering activity",
+        tip: "Gather Withered Wood Chip through Lumbering, then use Simple Alchemy with Essence of Nature."
+      },
+      {
+        name: "Essence of Life",
+        activity: "Fluid Collecting",
+        icon: "icons/essence-of-life.png",
+        type: "lifeskillCraft",
+        obtained: false,
+        lowerMaterial: {
+          item: "Thin Essence of Life",
+          icon: "icons/thin-essence-of-life.png",
+          current: 0,
+          required: 1000
+        },
+        essence: {
+          item: "Essence of Nature",
+          icon: "icons/essence-of-nature.png",
+          current: 0,
+          required: 100
+        },
+        location: "Fluid Collecting",
+        mobs: "Gathering activity",
+        tip: "Gather Thin Essence of Life through Fluid Collecting, then use Simple Alchemy with Essence of Nature."
+      },
+      {
+        name: "Heartvein Crystal",
+        activity: "Mining",
+        icon: "icons/heartvein-crystal.png",
+        type: "lifeskillCraft",
+        obtained: false,
+        lowerMaterial: {
+          item: "Dim Heartvein Shard",
+          icon: "icons/dim-heartvein-shard.png",
+          current: 0,
+          required: 1000
+        },
+        essence: {
+          item: "Essence of Nature",
+          icon: "icons/essence-of-nature.png",
+          current: 0,
+          required: 100
+        },
+        location: "Mining",
+        mobs: "Gathering activity",
+        tip: "Gather Dim Heartvein Shard through Mining, then use Simple Alchemy with Essence of Nature."
+      },
+      {
+        name: "Wildsoul",
+        activity: "Butchering",
+        icon: "icons/wildsoul.png",
+        type: "lifeskillCraft",
+        obtained: false,
+        lowerMaterial: {
+          item: "Faint Wildsoul",
+          icon: "icons/faint-wildsoul.png",
+          current: 0,
+          required: 1000
+        },
+        essence: {
+          item: "Essence of Nature",
+          icon: "icons/essence-of-nature.png",
+          current: 0,
+          required: 100
+        },
+        location: "Butchering",
+        mobs: "Gathering activity",
+        tip: "Gather Faint Wildsoul through Butchering, then use Simple Alchemy with Essence of Nature."
+      },
+      {
+        name: "Naturewoven Hide",
+        activity: "Tanning",
+        icon: "icons/naturewoven-hide.png",
+        type: "lifeskillCraft",
+        obtained: false,
+        lowerMaterial: {
+          item: "Faded Naturewoven Hide",
+          icon: "icons/faded-naturewoven-hide.png",
+          current: 0,
+          required: 1000
+        },
+        essence: {
+          item: "Essence of Nature",
+          icon: "icons/essence-of-nature.png",
+          current: 0,
+          required: 100
+        },
+        location: "Tanning",
+        mobs: "Gathering activity",
+        tip: "Gather Faded Naturewoven Hide through Tanning, then use Simple Alchemy with Essence of Nature."
+      }
+    ]
   }
 };
 
@@ -684,6 +830,14 @@ const pieceIdMap = {
     "mythical-arduanatt",
     "mythical-dine",
     "mythical-doom"
+  ],
+  nostos: [
+    "terrashard",
+    "eonwood-round",
+    "essence-of-life",
+    "heartvein-crystal",
+    "wildsoul",
+    "naturewoven-hide"
   ]
 };
 
@@ -716,7 +870,21 @@ function getStorageKey(treasureId) {
 }
 
 function getTreasureIds() {
-  return Object.keys(treasureRegistry);
+  const preferredOrder = [
+    "nostos",
+    "ornette",
+    "odore",
+    "map",
+    "compass",
+    "telescope",
+    "ring",
+    "krogdalo"
+  ];
+
+  const knownIds = new Set(Object.keys(treasureRegistry));
+  const ordered = preferredOrder.filter((treasureId) => knownIds.has(treasureId));
+  const remaining = Object.keys(treasureRegistry).filter((treasureId) => !ordered.includes(treasureId));
+  return [...ordered, ...remaining];
 }
 
 function getDefaultTreasureData(treasureId) {
@@ -780,6 +948,32 @@ function applyPieceProgress(piece, savedPiece) {
         toFiniteNumber(piece.material.required)
       );
     }
+    return;
+  }
+
+  if (piece.type === "lifeskillCraft") {
+    const obtained = getSavedValue(savedPiece, "obtained");
+    if (obtained !== undefined) {
+      piece.obtained = obtained === true;
+    }
+
+    const lowerMaterialCurrent = getSavedValue(savedPiece, "lowerMaterialCurrent", "lowerMaterial", "current");
+    if (piece.lowerMaterial && lowerMaterialCurrent !== undefined) {
+      piece.lowerMaterial.current = clamp(
+        toFiniteNumber(lowerMaterialCurrent),
+        0,
+        toFiniteNumber(piece.lowerMaterial.required)
+      );
+    }
+
+    const essenceCurrent = getSavedValue(savedPiece, "essenceCurrent", "essence", "current");
+    if (piece.essence && essenceCurrent !== undefined) {
+      piece.essence.current = clamp(
+        toFiniteNumber(essenceCurrent),
+        0,
+        toFiniteNumber(piece.essence.required)
+      );
+    }
   }
 }
 
@@ -808,6 +1002,20 @@ function extractPieceProgress(piece) {
       toFiniteNumber(piece.material?.current),
       0,
       toFiniteNumber(piece.material?.required)
+    );
+  }
+
+  if (piece.type === "lifeskillCraft") {
+    progress.obtained = !!piece.obtained;
+    progress.lowerMaterialCurrent = clamp(
+      toFiniteNumber(piece.lowerMaterial?.current),
+      0,
+      toFiniteNumber(piece.lowerMaterial?.required)
+    );
+    progress.essenceCurrent = clamp(
+      toFiniteNumber(piece.essence?.current),
+      0,
+      toFiniteNumber(piece.essence?.required)
     );
   }
 
@@ -999,6 +1207,13 @@ function isCraftedPieceComplete(piece) {
   return !!piece.obtained || toFiniteNumber(piece.material?.current) >= toFiniteNumber(piece.material?.required);
 }
 
+function isLifeSkillCraftPieceComplete(piece) {
+  return !!piece.obtained || (
+    toFiniteNumber(piece.lowerMaterial?.current) >= toFiniteNumber(piece.lowerMaterial?.required) &&
+    toFiniteNumber(piece.essence?.current) >= toFiniteNumber(piece.essence?.required)
+  );
+}
+
 function isSimplePieceComplete(piece) {
   return !!piece.obtained;
 }
@@ -1006,6 +1221,7 @@ function isSimplePieceComplete(piece) {
 function isPieceComplete(piece) {
   if (piece.type === "grind") return isGrindPieceComplete(piece);
   if (piece.type === "crafted") return isCraftedPieceComplete(piece);
+  if (piece.type === "lifeskillCraft") return isLifeSkillCraftPieceComplete(piece);
   if (piece.type === "simple") return isSimplePieceComplete(piece);
   return false;
 }
@@ -1023,6 +1239,27 @@ function getPieceProgress(piece) {
     const current = clamp(toFiniteNumber(piece.material?.current), 0, toFiniteNumber(piece.material?.required));
     const required = toFiniteNumber(piece.material?.required);
     return required <= 0 ? 0 : current / required;
+  }
+
+  if (piece.type === "lifeskillCraft") {
+    if (piece.obtained) return 1;
+
+    const lowerCurrent = clamp(
+      toFiniteNumber(piece.lowerMaterial?.current),
+      0,
+      toFiniteNumber(piece.lowerMaterial?.required)
+    );
+    const lowerRequired = toFiniteNumber(piece.lowerMaterial?.required);
+    const essenceCurrent = clamp(
+      toFiniteNumber(piece.essence?.current),
+      0,
+      toFiniteNumber(piece.essence?.required)
+    );
+    const essenceRequired = toFiniteNumber(piece.essence?.required);
+
+    const lowerProgress = lowerRequired <= 0 ? 0 : lowerCurrent / lowerRequired;
+    const essenceProgress = essenceRequired <= 0 ? 0 : essenceCurrent / essenceRequired;
+    return (lowerProgress + essenceProgress) / 2;
   }
 
   if (piece.type === "simple") {
@@ -1043,6 +1280,7 @@ function isPotionTreasureId(treasureId) {
 function getTreasureTypeLabel(treasureData) {
   const types = new Set(treasureData.pieces.map((piece) => piece.type));
 
+  if (types.has("lifeskillCraft")) return "Gathering + Crafted";
   if (types.size === 1 && types.has("simple")) return "Drop Collection";
   if (types.size === 1 && types.has("grind")) return "Grind Progress";
   if (types.size === 1 && types.has("crafted")) return "Crafted Progress";
@@ -2124,6 +2362,177 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
   return wrapper;
 }
 
+function createLifeSkillCraftPiece(piece, treasureId, onUpdate) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "piece";
+
+  const header = document.createElement("div");
+  header.className = "piece-title";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "checkbox";
+  checkbox.checked = !!piece.obtained;
+  checkbox.setAttribute("aria-label", `${piece.name} obtained`);
+
+  const titleText = document.createElement("span");
+  titleText.className = "piece-name";
+  titleText.textContent = piece.name;
+
+  const badge = createPieceBadge("Gathering", "gathering");
+
+  header.appendChild(checkbox);
+
+  if (piece.icon) {
+    header.appendChild(createIcon(piece.icon, piece.name, "icon large"));
+  }
+
+  header.appendChild(titleText);
+  header.appendChild(badge);
+  wrapper.appendChild(header);
+
+  const sourceRow = document.createElement("div");
+  sourceRow.className = "sub lifeskill-source-row";
+  appendStrongLabel(sourceRow, "Activity:");
+  sourceRow.appendChild(document.createTextNode(` ${piece.activity || "Gathering"}`));
+  wrapper.appendChild(sourceRow);
+
+  const lowerRow = document.createElement("div");
+  lowerRow.className = "sub lifeskill-progress-row";
+  lowerRow.appendChild(
+    createInlineIconLabel(
+      piece.lowerMaterial.icon,
+      [{ strong: "Material:" }, ` ${piece.lowerMaterial.item}`]
+    )
+  );
+
+  const lowerInput = document.createElement("input");
+  lowerInput.type = "number";
+  lowerInput.min = "0";
+  lowerInput.max = String(piece.lowerMaterial.required);
+  lowerInput.value = piece.lowerMaterial.current;
+  lowerInput.className = "material-input";
+  lowerInput.setAttribute("aria-label", `${piece.lowerMaterial.item} material count`);
+
+  const lowerRequired = document.createElement("span");
+  lowerRequired.textContent = `/ ${piece.lowerMaterial.required}`;
+
+  lowerRow.appendChild(lowerInput);
+  lowerRow.appendChild(lowerRequired);
+  wrapper.appendChild(lowerRow);
+
+  const essenceRow = document.createElement("div");
+  essenceRow.className = "sub lifeskill-progress-row";
+  essenceRow.appendChild(
+    createInlineIconLabel(
+      piece.essence.icon,
+      [{ strong: "Essence:" }, ` ${piece.essence.item}`]
+    )
+  );
+
+  const essenceInput = document.createElement("input");
+  essenceInput.type = "number";
+  essenceInput.min = "0";
+  essenceInput.max = String(piece.essence.required);
+  essenceInput.value = piece.essence.current;
+  essenceInput.className = "material-input";
+  essenceInput.setAttribute("aria-label", `${piece.essence.item} count`);
+
+  const essenceRequired = document.createElement("span");
+  essenceRequired.textContent = `/ ${piece.essence.required}`;
+
+  essenceRow.appendChild(essenceInput);
+  essenceRow.appendChild(essenceRequired);
+
+  const help = createHelpButton(`Show item details for ${piece.name}`);
+  essenceRow.appendChild(help);
+  wrapper.appendChild(essenceRow);
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+
+  const fill = document.createElement("div");
+  fill.className = "fill";
+  bar.appendChild(fill);
+  wrapper.appendChild(bar);
+
+  wrapper.appendChild(createStatusRow("Status", "Simple Alchemy result using 1,000 gathering materials and 100 Essence of Nature.", "sub crafted-note"));
+
+  const tooltip = createTooltip(piece);
+  wrapper.appendChild(tooltip);
+
+  function updatePieceState() {
+    if (piece.lowerMaterial.current >= piece.lowerMaterial.required) {
+      piece.lowerMaterial.current = piece.lowerMaterial.required;
+    }
+
+    if (piece.essence.current >= piece.essence.required) {
+      piece.essence.current = piece.essence.required;
+    }
+
+    if (
+      piece.lowerMaterial.current >= piece.lowerMaterial.required &&
+      piece.essence.current >= piece.essence.required
+    ) {
+      piece.obtained = true;
+    }
+
+    if (
+      !piece.obtained &&
+      (
+        piece.lowerMaterial.current < piece.lowerMaterial.required ||
+        piece.essence.current < piece.essence.required
+      )
+    ) {
+      checkbox.checked = false;
+    } else {
+      checkbox.checked = !!piece.obtained;
+    }
+
+    lowerInput.value = piece.lowerMaterial.current;
+    essenceInput.value = piece.essence.current;
+    wrapper.classList.toggle("completed-piece", isLifeSkillCraftPieceComplete(piece));
+    fill.style.width = `${Math.round(getPieceProgress(piece) * 100)}%`;
+  }
+
+  function persistAndRefresh() {
+    saveTreasureData(treasureId, treasureState[treasureId]);
+    onUpdate();
+    refreshAtanisUI();
+  }
+
+  checkbox.addEventListener("change", () => {
+    piece.obtained = checkbox.checked;
+    updatePieceState();
+    persistAndRefresh();
+  });
+
+  lowerInput.addEventListener("input", () => {
+    piece.lowerMaterial.current = clamp(
+      toFiniteNumber(lowerInput.value),
+      0,
+      piece.lowerMaterial.required
+    );
+    updatePieceState();
+    persistAndRefresh();
+  });
+
+  essenceInput.addEventListener("input", () => {
+    piece.essence.current = clamp(
+      toFiniteNumber(essenceInput.value),
+      0,
+      piece.essence.required
+    );
+    updatePieceState();
+    persistAndRefresh();
+  });
+
+  attachTooltipHandlers(help, tooltip);
+  updatePieceState();
+
+  return wrapper;
+}
+
 function createMarketFlavorNode(treasureId) {
   const flavor = document.createElement("span");
   flavor.className = "market-flavor hidden";
@@ -2187,6 +2596,13 @@ function createTreasurePanel(treasureId) {
   title.className = "panel-heading";
   title.textContent = treasureData.name;
   titleLine.appendChild(title);
+
+  if (treasureData.isNew) {
+    const newBadge = document.createElement("span");
+    newBadge.className = "new-treasure-badge";
+    newBadge.textContent = "NEW";
+    titleLine.appendChild(newBadge);
+  }
 
   const metaRow = document.createElement("span");
   metaRow.className = "panel-meta-row";
@@ -2300,6 +2716,8 @@ function createTreasurePanel(treasureId) {
         tree.appendChild(createGrindPiece(piece, treasureId, pieceIndex, updateOverallUI));
       } else if (piece.type === "crafted") {
         tree.appendChild(createCraftedPiece(piece, treasureId, updateOverallUI));
+      } else if (piece.type === "lifeskillCraft") {
+        tree.appendChild(createLifeSkillCraftPiece(piece, treasureId, updateOverallUI));
       } else if (piece.type === "simple") {
         tree.appendChild(createSimplePiece(piece, treasureId, updateOverallUI));
       }

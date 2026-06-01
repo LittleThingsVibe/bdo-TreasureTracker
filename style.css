@@ -397,6 +397,19 @@ body::after {
   --panel-art: url("images/krogdalo-background.webp");
 }
 
+.treasure-nostos {
+  --accent-glow: rgba(110, 230, 150, 0.14);
+  --accent-soft: rgba(110, 230, 150, 0.08);
+  --accent-border: rgba(150, 235, 175, 0.22);
+  --panel-overlay-1: linear-gradient(90deg, rgba(8, 30, 18, 0.66), rgba(8, 30, 18, 0.14) 42%, rgba(6, 12, 22, 0.4));
+  --panel-overlay-2: linear-gradient(180deg, rgba(8, 16, 10, 0.16), rgba(8, 16, 10, 0.34));
+  --panel-art-position: 80% 20%;
+}
+
+.treasure-nostos.panel-visual-ready {
+  --panel-art: url("images/nostos-background.png");
+}
+
 .panel-top {
   position: relative;
   z-index: 2;
@@ -512,6 +525,28 @@ body::after {
   color: var(--text);
   line-height: 1.15;
   letter-spacing: -0.02em;
+}
+
+.new-treasure-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(150, 235, 175, 0.34);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    rgba(8, 24, 16, 0.72);
+  color: #f7efc6;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 0 1px rgba(245, 199, 107, 0.05),
+    0 0 16px rgba(110, 230, 150, 0.08);
+  white-space: nowrap;
 }
 
 .panel-subtitle {
@@ -761,6 +796,12 @@ body::after {
   background: rgba(245, 199, 107, 0.05);
 }
 
+.piece-badge.gathering {
+  color: #c9f6d8;
+  border-color: rgba(110, 230, 150, 0.28);
+  background: rgba(110, 230, 150, 0.08);
+}
+
 .piece-badge.simple {
   display: none;
 }
@@ -815,8 +856,18 @@ body::after {
 }
 
 .pity-row,
-.material-progress-row {
+.material-progress-row,
+.lifeskill-progress-row {
   margin-bottom: 4px;
+}
+
+.lifeskill-progress-row .inline-icon-label {
+  flex: 1 1 auto;
+}
+
+.lifeskill-source-row,
+.lifeskill-progress-row {
+  align-items: center;
 }
 
 .pity-input,

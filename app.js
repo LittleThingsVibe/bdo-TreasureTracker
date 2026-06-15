@@ -2,6 +2,11 @@ const STORAGE_PREFIX = "bdoTreasureTracker_";
 const PANEL_STATE_KEY = "bdoTreasureTracker_panelState_v6";
 const ATANIS_STATE_KEY = "bdoTreasureTracker_atanis_v2";
 const STORAGE_WARNING_ID = "storageWarning";
+const COMBINE_DIALOG_ID = "combineDialog";
+const SHARE_TOAST_ID = "shareToast";
+const SHARE_CARD_STAGE_ID = "shareCardStage";
+const SHARE_PREVIEW_DIALOG_ID = "sharePreviewDialog";
+const SHARE_EXPORT_URL = "https://bdotreasurehub.com/";
 const PROGRESS_PAYLOAD_VERSION = 12;
 const VISUAL_INTRO_SESSION_KEY = "bdoTreasureTracker_visualIntroSeen_v1";
 const VISUAL_INTRO_LOCAL_KEY = "bdoTreasureTracker_visualIntroSeenAt_v1";
@@ -718,7 +723,7 @@ const treasureRegistry = {
           current: 0,
           required: 100
         },
-        location: "Mining",
+        location: "Mining<br>Pilgrim's Haven <span class='tip-accent'>(best location)</span>",
         mobs: "Gathering activity",
         tip: "Gather Dim Heartvein Shard through Mining, then use Simple Alchemy with Essence of Nature."
       },
@@ -762,7 +767,7 @@ const treasureRegistry = {
           current: 0,
           required: 100
         },
-        location: "Tanning",
+        location: "Tanning<br>Navarn Steppe <span class='tip-accent'>(best location)</span>",
         mobs: "Gathering activity",
         tip: "Gather Faded Naturewoven Hide through Tanning, then use Simple Alchemy with Essence of Nature."
       }
@@ -1084,6 +1089,39 @@ function showStorageWarning() {
   showStorageWarning.hideTimer = window.setTimeout(() => {
     warning.hidden = true;
   }, 5200);
+}
+
+function showToast(message) {
+  if (!document.body) return;
+
+  let toast = document.getElementById(SHARE_TOAST_ID);
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = SHARE_TOAST_ID;
+    toast.className = "share-toast";
+    toast.hidden = true;
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = message;
+  toast.hidden = false;
+  toast.classList.remove("is-visible");
+
+  window.requestAnimationFrame(() => {
+    toast.classList.add("is-visible");
+  });
+
+  window.clearTimeout(showToast.hideTimer);
+  showToast.hideTimer = window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+
+    window.clearTimeout(showToast.cleanupTimer);
+    showToast.cleanupTimer = window.setTimeout(() => {
+      toast.hidden = true;
+    }, 220);
+  }, 3200);
 }
 
 function saveJSONToStorage(key, value, label) {
@@ -1435,14 +1473,146 @@ function closeAllTooltips() {
   clearTooltipClasses();
 }
 
-function closeAllCombineTooltips() {
-  document.querySelectorAll(".combine-help-wrap.open").forEach((wrap) => {
-    wrap.classList.remove("open");
-    const button = wrap.querySelector(".combine-help-btn");
-    if (button) {
-      button.setAttribute("aria-expanded", "false");
-    }
+let combineDialogState = null;
+
+function ensureCombineDialog() {
+  if (combineDialogState?.overlay && document.body.contains(combineDialogState.overlay)) {
+    return combineDialogState;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = COMBINE_DIALOG_ID;
+  overlay.className = "combine-dialog-overlay";
+  overlay.hidden = true;
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", `${COMBINE_DIALOG_ID}Title`);
+
+  const card = document.createElement("div");
+  card.className = "combine-dialog-card";
+
+  const header = document.createElement("div");
+  header.className = "combine-dialog-header";
+
+  const title = document.createElement("h3");
+  title.id = `${COMBINE_DIALOG_ID}Title`;
+  title.className = "combine-dialog-title";
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "combine-dialog-close";
+  closeButton.setAttribute("aria-label", "Close assembly preview");
+  closeButton.textContent = "x";
+
+  const media = document.createElement("div");
+  media.className = "combine-dialog-media";
+
+  const image = document.createElement("img");
+  image.className = "combine-dialog-image";
+  image.alt = "";
+  image.loading = "eager";
+  media.appendChild(image);
+
+  const text = document.createElement("p");
+  text.className = "combine-dialog-text";
+
+  header.appendChild(title);
+  header.appendChild(closeButton);
+  card.appendChild(header);
+  card.appendChild(media);
+  card.appendChild(text);
+  overlay.appendChild(card);
+
+  overlay.addEventListener("click", (event) => {
+    if (event.target !== overlay) return;
+    closeAllCombineTooltips();
   });
+
+  closeButton.addEventListener("click", () => {
+    closeAllCombineTooltips();
+  });
+
+  document.body.appendChild(overlay);
+
+  combineDialogState = {
+    overlay,
+    title,
+    media,
+    image,
+    text,
+    activeTrigger: null,
+    activeTreasureId: null
+  };
+
+  return combineDialogState;
+}
+
+function openCombineDialog(treasureData, triggerButton) {
+  const dialog = ensureCombineDialog();
+  const isSameDialog = dialog.activeTreasureId === treasureData.id && dialog.activeTrigger === triggerButton && !dialog.overlay.hidden;
+
+  if (isSameDialog) {
+    closeAllCombineTooltips();
+    return;
+  }
+
+  closeAllCombineTooltips({ returnFocus: false });
+
+  dialog.title.textContent = treasureData.name;
+  dialog.text.textContent = treasureData.combine?.text || "Arrange the required pieces in your inventory.";
+
+  if (treasureData.combine?.image) {
+    dialog.image.src = treasureData.combine.image;
+    dialog.image.alt = `${treasureData.name} combine layout`;
+    dialog.media.hidden = false;
+  } else {
+    dialog.image.removeAttribute("src");
+    dialog.image.alt = "";
+    dialog.media.hidden = true;
+  }
+
+  const wrap = triggerButton.closest(".combine-help-wrap");
+  if (wrap) {
+    wrap.classList.add("open");
+  }
+
+  triggerButton.setAttribute("aria-expanded", "true");
+  dialog.activeTrigger = triggerButton;
+  dialog.activeTreasureId = treasureData.id;
+  dialog.overlay.hidden = false;
+
+  window.requestAnimationFrame(() => {
+    dialog.overlay.classList.add("is-visible");
+  });
+}
+
+function closeAllCombineTooltips(options = {}) {
+  const dialog = combineDialogState;
+  if (!dialog) return;
+
+  const returnFocus = options.returnFocus !== false;
+  const activeTrigger = dialog.activeTrigger;
+  const activeWrap = activeTrigger?.closest(".combine-help-wrap");
+
+  dialog.overlay.classList.remove("is-visible");
+  dialog.overlay.hidden = true;
+
+  if (activeWrap) {
+    activeWrap.classList.remove("open");
+  }
+
+  if (activeTrigger) {
+    activeTrigger.setAttribute("aria-expanded", "false");
+  }
+
+  dialog.activeTrigger = null;
+  dialog.activeTreasureId = null;
+
+  if (returnFocus && activeTrigger) {
+    window.requestAnimationFrame(() => {
+      activeTrigger.focus();
+    });
+  }
 }
 
 function createPieceBadge(text, extraClass = "") {
@@ -1476,6 +1646,35 @@ function createChevron() {
   polyline.setAttribute("points", "6 9 12 15 18 9");
   svg.appendChild(polyline);
 
+  return svg;
+}
+
+function createCameraIcon(className = "share-progress-icon") {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.classList.add(className);
+
+  const path = document.createElementNS(svgNS, "path");
+  path.setAttribute(
+    "d",
+    "M4 7h2.4l1.5-2h8.2l1.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"
+  );
+
+  const circle = document.createElementNS(svgNS, "circle");
+  circle.setAttribute("cx", "12");
+  circle.setAttribute("cy", "13");
+  circle.setAttribute("r", "3.25");
+
+  svg.appendChild(path);
+  svg.appendChild(circle);
   return svg;
 }
 
@@ -1622,6 +1821,8 @@ function createCombineButton(treasureData) {
   button.type = "button";
   button.className = "combine-help-btn";
   button.setAttribute("aria-label", `Show assembly info for ${treasureData.name}`);
+  button.setAttribute("aria-haspopup", "dialog");
+  button.setAttribute("aria-controls", COMBINE_DIALOG_ID);
   button.setAttribute("aria-expanded", "false");
 
   const buttonIcon = document.createElement("span");
@@ -1630,74 +1831,19 @@ function createCombineButton(treasureData) {
   buttonIcon.textContent = "⚒";
   button.appendChild(buttonIcon);
 
-  const tooltip = document.createElement("div");
-  tooltip.className = "combine-tooltip";
-  tooltip.id = `combine-tooltip-${treasureData.id}`;
-  tooltip.setAttribute("role", "dialog");
-  tooltip.setAttribute("aria-label", `${treasureData.name} assembly info`);
-  button.setAttribute("aria-controls", tooltip.id);
-
-  const combineImage = treasureData.combine?.image || "";
-  const combineText = treasureData.combine?.text || "Arrange the required pieces in your inventory.";
-
-  const tooltipInner = document.createElement("div");
-  tooltipInner.className = "combine-tooltip-inner";
-
-  if (combineImage) {
-    const image = document.createElement("img");
-    image.src = combineImage;
-    image.alt = `${treasureData.name} combine layout`;
-    image.className = "combine-tooltip-image";
-    image.loading = "lazy";
-    tooltipInner.appendChild(image);
-  }
-
-  const tooltipText = document.createElement("p");
-  tooltipText.className = "combine-tooltip-text";
-  tooltipText.textContent = combineText;
-  tooltipInner.appendChild(tooltipText);
-  tooltip.appendChild(tooltipInner);
-
-  function openTooltip() {
-    closeAllCombineTooltips();
-    wrap.classList.add("open");
-    button.setAttribute("aria-expanded", "true");
-  }
-
-  function closeTooltip() {
-    wrap.classList.remove("open");
-    button.setAttribute("aria-expanded", "false");
-  }
-
-  button.addEventListener("mouseenter", () => {
-    if (window.innerWidth <= 760) return;
-    openTooltip();
-  });
-
-  wrap.addEventListener("mouseleave", () => {
-    if (window.innerWidth <= 760) return;
-    closeTooltip();
-  });
-
   button.addEventListener("click", (event) => {
+    event.preventDefault();
     event.stopPropagation();
-    const isOpen = wrap.classList.contains("open");
-
-    if (isOpen) {
-      closeTooltip();
-    } else {
-      openTooltip();
-    }
+    openCombineDialog(treasureData, button);
   });
 
   button.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    closeTooltip();
+    closeAllCombineTooltips();
     button.focus();
   });
 
   wrap.appendChild(button);
-  wrap.appendChild(tooltip);
 
   return wrap;
 }
@@ -1884,6 +2030,7 @@ function createAtanisHelper() {
   input.value = distribution.total;
   input.className = "atanis-total-input";
   input.setAttribute("data-atanis-input", "");
+  input.setAttribute("aria-label", "Shared Atanis Elements for HP potion helper");
 
   inputGroup.appendChild(inputLabel);
   inputGroup.appendChild(input);
@@ -1958,6 +2105,7 @@ function createAtanisMirrorHelper() {
   input.value = distribution.total;
   input.className = "atanis-mirror-input";
   input.setAttribute("data-atanis-mirror-input", "");
+  input.setAttribute("aria-label", "Shared Atanis Elements for MP potion helper");
 
   inputGroup.appendChild(inputLabel);
   inputGroup.appendChild(input);
@@ -2412,7 +2560,7 @@ function createLifeSkillCraftPiece(piece, treasureId, onUpdate) {
   lowerInput.max = String(piece.lowerMaterial.required);
   lowerInput.value = piece.lowerMaterial.current;
   lowerInput.className = "material-input";
-  lowerInput.setAttribute("aria-label", `${piece.lowerMaterial.item} material count`);
+  lowerInput.setAttribute("aria-label", `${piece.lowerMaterial.item} material count for ${piece.name}`);
 
   const lowerRequired = document.createElement("span");
   lowerRequired.textContent = `/ ${piece.lowerMaterial.required}`;
@@ -2436,7 +2584,7 @@ function createLifeSkillCraftPiece(piece, treasureId, onUpdate) {
   essenceInput.max = String(piece.essence.required);
   essenceInput.value = piece.essence.current;
   essenceInput.className = "material-input";
-  essenceInput.setAttribute("aria-label", `${piece.essence.item} count`);
+  essenceInput.setAttribute("aria-label", `${piece.essence.item} count for ${piece.name}`);
 
   const essenceRequired = document.createElement("span");
   essenceRequired.textContent = `/ ${piece.essence.required}`;
@@ -2544,6 +2692,622 @@ function createMarketFlavorNode(treasureId) {
   return flavor;
 }
 
+function createShareCardIcon(src, alt, className) {
+  const image = document.createElement("img");
+  image.src = src;
+  image.alt = alt || "";
+  image.className = className;
+  image.loading = "eager";
+  image.decoding = "async";
+  return image;
+}
+
+function formatSharePair(current, required) {
+  const safeRequired = Math.max(0, toFiniteNumber(required));
+  const safeCurrent = safeRequired > 0
+    ? clamp(toFiniteNumber(current), 0, safeRequired)
+    : Math.max(0, toFiniteNumber(current));
+
+  return safeRequired > 0 ? `${safeCurrent} / ${safeRequired}` : `${safeCurrent}`;
+}
+
+function getSharePieceStatus(piece) {
+  const completed = isPieceComplete(piece);
+
+  if (piece.type === "grind") {
+    if (piece.fullDrop?.obtained) {
+      return {
+        complete: true,
+        summary: "Full drop obtained",
+        detail: "Completed"
+      };
+    }
+
+    return {
+      complete: completed,
+      summary: `${formatSharePair(piece.pity?.current, piece.pity?.max)} pity`,
+      detail: completed ? "Exchange ready" : "Pity progress"
+    };
+  }
+
+  if (piece.type === "crafted") {
+    const materialSummary = formatSharePair(piece.material?.current, piece.material?.required);
+
+    if (piece.obtained && toFiniteNumber(piece.material?.current) < toFiniteNumber(piece.material?.required)) {
+      return {
+        complete: true,
+        summary: "Obtained",
+        detail: `${materialSummary} tracked`
+      };
+    }
+
+    return {
+      complete: completed,
+      summary: materialSummary,
+      detail: piece.material?.item || "Material progress"
+    };
+  }
+
+  if (piece.type === "lifeskillCraft") {
+    const lowerSummary = formatSharePair(piece.lowerMaterial?.current, piece.lowerMaterial?.required);
+    const essenceSummary = `${formatSharePair(piece.essence?.current, piece.essence?.required)} essence`;
+
+    if (
+      piece.obtained &&
+      (
+        toFiniteNumber(piece.lowerMaterial?.current) < toFiniteNumber(piece.lowerMaterial?.required) ||
+        toFiniteNumber(piece.essence?.current) < toFiniteNumber(piece.essence?.required)
+      )
+    ) {
+      return {
+        complete: true,
+        summary: "Obtained",
+        detail: `${lowerSummary} + ${essenceSummary}`
+      };
+    }
+
+    return {
+      complete: completed,
+      summary: lowerSummary,
+      detail: essenceSummary
+    };
+  }
+
+  return {
+    complete: completed,
+    summary: completed ? "Obtained" : "Missing",
+    detail: completed ? "Collected" : "Still missing"
+  };
+}
+
+function createSharePieceItem(piece) {
+  const status = getSharePieceStatus(piece);
+  const item = document.createElement("div");
+  item.className = `share-card-piece ${status.complete ? "completed" : "missing"}`;
+
+  const iconWrap = document.createElement("div");
+  iconWrap.className = "share-card-piece-icon-wrap";
+  if (piece.icon) {
+    iconWrap.appendChild(createShareCardIcon(piece.icon, piece.name, "share-card-piece-icon"));
+  }
+
+  const body = document.createElement("div");
+  body.className = "share-card-piece-body";
+
+  const name = document.createElement("div");
+  name.className = "share-card-piece-name";
+  name.textContent = piece.name;
+
+  const summary = document.createElement("div");
+  summary.className = "share-card-piece-status";
+  summary.textContent = status.summary;
+
+  const detail = document.createElement("div");
+  detail.className = "share-card-piece-detail";
+  detail.textContent = status.detail;
+
+  const mark = document.createElement("span");
+  mark.className = "share-card-piece-mark";
+  mark.setAttribute("aria-hidden", "true");
+  mark.textContent = status.complete ? "✓" : "•";
+
+  body.appendChild(name);
+  body.appendChild(summary);
+  body.appendChild(detail);
+
+  item.appendChild(iconWrap);
+  item.appendChild(body);
+  item.appendChild(mark);
+  return item;
+}
+
+function buildTreasureShareCard(treasureId) {
+  const treasureData = treasureState[treasureId];
+  const { total, completed, percent } = calculateOverallProgress(treasureData);
+  const isNewTreasure = treasureId === "nostos" || treasureData.name.includes("Star of Nostos");
+
+  const card = document.createElement("article");
+  card.className = "treasure-share-card";
+  card.setAttribute("data-treasure", treasureId);
+
+  const header = document.createElement("header");
+  header.className = "share-card-header";
+
+  const brand = document.createElement("div");
+  brand.className = "share-card-brand";
+  brand.textContent = "BDO Treasure Tracker";
+  header.appendChild(brand);
+
+  const titleRow = document.createElement("div");
+  titleRow.className = "share-card-title-row";
+
+  if (treasureData.icon) {
+    titleRow.appendChild(createShareCardIcon(treasureData.icon, treasureData.name, "share-card-treasure-icon"));
+  }
+
+  const titleCopy = document.createElement("div");
+  titleCopy.className = "share-card-title-copy";
+
+  const titleLine = document.createElement("div");
+  titleLine.className = "share-card-title-line";
+
+  const title = document.createElement("h2");
+  title.className = "share-card-title";
+  title.textContent = treasureData.name;
+  titleLine.appendChild(title);
+
+  if (isNewTreasure) {
+    const badge = document.createElement("span");
+    badge.className = "new-treasure-badge share-card-new-badge";
+    badge.textContent = "NEW";
+    titleLine.appendChild(badge);
+  }
+
+  const subtitle = document.createElement("p");
+  subtitle.className = "share-card-subtitle";
+  subtitle.textContent = treasureData.subtitle;
+
+  const metaRow = document.createElement("div");
+  metaRow.className = "share-card-meta-row";
+  metaRow.appendChild(createPanelPill(getTreasureTypeLabel(treasureData), "type"));
+  metaRow.appendChild(createPanelPill(`${total} pieces`, "count"));
+
+  titleCopy.appendChild(titleLine);
+  titleCopy.appendChild(subtitle);
+  titleCopy.appendChild(metaRow);
+  titleRow.appendChild(titleCopy);
+  header.appendChild(titleRow);
+
+  const progressSection = document.createElement("section");
+  progressSection.className = "share-card-progress";
+
+  const progressTop = document.createElement("div");
+  progressTop.className = "share-card-progress-top";
+
+  const progressLabel = document.createElement("div");
+  progressLabel.className = "share-card-progress-label";
+  progressLabel.textContent = "Overall Progress";
+
+  const progressValue = document.createElement("div");
+  progressValue.className = "share-card-progress-value";
+  progressValue.textContent = `${percent}%`;
+
+  progressTop.appendChild(progressLabel);
+  progressTop.appendChild(progressValue);
+
+  const progressCount = document.createElement("div");
+  progressCount.className = "share-card-progress-count";
+  progressCount.textContent = `${completed} / ${total} completed`;
+
+  const progressBar = document.createElement("div");
+  progressBar.className = "share-card-progress-bar";
+
+  const progressFill = document.createElement("div");
+  progressFill.className = "share-card-progress-fill";
+  progressFill.style.width = `${percent}%`;
+
+  progressBar.appendChild(progressFill);
+  progressSection.appendChild(progressTop);
+  progressSection.appendChild(progressCount);
+  progressSection.appendChild(progressBar);
+
+  const pieceGrid = document.createElement("section");
+  pieceGrid.className = "share-card-piece-grid";
+
+  treasureData.pieces.forEach((piece) => {
+    pieceGrid.appendChild(createSharePieceItem(piece));
+  });
+
+  const footer = document.createElement("footer");
+  footer.className = "share-card-footer";
+
+  const footerUrl = document.createElement("span");
+  footerUrl.className = "share-card-footer-url";
+  footerUrl.textContent = "bdotreasurehub.com";
+
+  const footerText = document.createElement("span");
+  footerText.className = "share-card-footer-copy";
+  footerText.textContent = "Fan-made BDO community tracker";
+
+  footer.appendChild(footerUrl);
+  footer.appendChild(footerText);
+
+  card.appendChild(header);
+  card.appendChild(progressSection);
+  card.appendChild(pieceGrid);
+  card.appendChild(footer);
+  return card;
+}
+
+function createShareCardStage() {
+  const existingStage = document.getElementById(SHARE_CARD_STAGE_ID);
+  if (existingStage) {
+    existingStage.remove();
+  }
+
+  const stage = document.createElement("div");
+  stage.id = SHARE_CARD_STAGE_ID;
+  stage.className = "share-card-stage";
+  return stage;
+}
+
+async function waitForShareCardAssets(root) {
+  const images = Array.from(root.querySelectorAll("img"));
+  const imagePromises = images.map((image) => {
+    if (image.complete && image.naturalWidth > 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      const done = () => resolve();
+      image.addEventListener("load", done, { once: true });
+      image.addEventListener("error", done, { once: true });
+    });
+  });
+
+  await Promise.all(imagePromises);
+
+  if (document.fonts?.ready) {
+    try {
+      await document.fonts.ready;
+    } catch (error) {
+      console.warn("Font readiness check failed:", error);
+    }
+  }
+
+  await wait(40);
+}
+
+function canvasToBlob(canvas) {
+  return new Promise((resolve) => {
+    if (typeof canvas.toBlob === "function") {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, "image/png");
+      return;
+    }
+
+    const dataUrl = canvas.toDataURL("image/png");
+    const [header, body] = dataUrl.split(",");
+    const mimeMatch = header.match(/data:(.*?);base64/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/png";
+    const binary = atob(body);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    resolve(new Blob([bytes], { type: mime }));
+  });
+}
+
+function downloadObjectUrl(objectUrl, filename) {
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function closeSharePreviewModal(options = {}) {
+  const { returnFocus = true } = options;
+  const overlay = document.getElementById(SHARE_PREVIEW_DIALOG_ID);
+  if (!overlay) return;
+
+  const triggerButton = overlay.activeTrigger || null;
+  const objectUrl = overlay.objectUrl || "";
+  const removeKeydown = overlay.removeKeydownListener;
+
+  overlay.removeKeydownListener = null;
+  overlay.activeTrigger = null;
+  overlay.objectUrl = "";
+
+  if (typeof removeKeydown === "function") {
+    removeKeydown();
+  }
+
+  overlay.remove();
+
+  if (objectUrl) {
+    URL.revokeObjectURL(objectUrl);
+  }
+
+  if (returnFocus && triggerButton) {
+    window.requestAnimationFrame(() => {
+      triggerButton.focus();
+    });
+  }
+}
+
+function openSharePreviewModal({
+  treasureId,
+  treasureData,
+  blob,
+  filename,
+  triggerButton
+}) {
+  closeSharePreviewModal({ returnFocus: false });
+
+  const objectUrl = URL.createObjectURL(blob);
+  const overlay = document.createElement("div");
+  overlay.id = SHARE_PREVIEW_DIALOG_ID;
+  overlay.className = "share-preview-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", `${SHARE_PREVIEW_DIALOG_ID}Title`);
+  overlay.setAttribute("aria-describedby", `${SHARE_PREVIEW_DIALOG_ID}Description`);
+  overlay.activeTrigger = triggerButton || null;
+  overlay.objectUrl = objectUrl;
+
+  const card = document.createElement("div");
+  card.className = "share-preview-card";
+
+  const header = document.createElement("div");
+  header.className = "share-preview-header";
+
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "share-preview-copy";
+
+  const title = document.createElement("h3");
+  title.id = `${SHARE_PREVIEW_DIALOG_ID}Title`;
+  title.className = "share-preview-title";
+  title.textContent = "Share progress";
+
+  const description = document.createElement("p");
+  description.id = `${SHARE_PREVIEW_DIALOG_ID}Description`;
+  description.className = "share-preview-description";
+  description.textContent = `${treasureData.name} progress card is ready.`;
+
+  titleWrap.appendChild(title);
+  titleWrap.appendChild(description);
+  header.appendChild(titleWrap);
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "share-preview-close";
+  closeButton.setAttribute("aria-label", "Close share progress preview");
+  closeButton.textContent = "x";
+  header.appendChild(closeButton);
+
+  const previewFrame = document.createElement("div");
+  previewFrame.className = "share-preview-frame";
+
+  const previewImage = document.createElement("img");
+  previewImage.className = "share-preview-image";
+  previewImage.src = objectUrl;
+  previewImage.alt = `${treasureData.name} progress card preview`;
+  previewImage.loading = "eager";
+  previewFrame.appendChild(previewImage);
+
+  const actions = document.createElement("div");
+  actions.className = "share-preview-actions";
+
+  const shareButton = document.createElement("button");
+  shareButton.type = "button";
+  shareButton.className = "ghost-btn share-preview-action share-preview-action-primary";
+  shareButton.textContent = "Share Image";
+
+  const downloadButton = document.createElement("button");
+  downloadButton.type = "button";
+  downloadButton.className = "ghost-btn share-preview-action";
+  downloadButton.textContent = "Download PNG";
+
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.className = "ghost-btn share-preview-action";
+  openButton.textContent = "Open Image";
+
+  const dismissButton = document.createElement("button");
+  dismissButton.type = "button";
+  dismissButton.className = "ghost-btn share-preview-action";
+  dismissButton.textContent = "Close";
+
+  const closeModal = () => {
+    closeSharePreviewModal();
+  };
+
+  const onKeyDown = (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeModal();
+    }
+  };
+
+  overlay.removeKeydownListener = () => {
+    document.removeEventListener("keydown", onKeyDown);
+  };
+
+  document.addEventListener("keydown", onKeyDown);
+
+  shareButton.addEventListener("click", async () => {
+    if (
+      typeof File !== "function" ||
+      typeof navigator === "undefined" ||
+      typeof navigator.share !== "function" ||
+      typeof navigator.canShare !== "function"
+    ) {
+      showToast("Sharing is not supported here. You can download or open the image instead.");
+      return;
+    }
+
+    const file = new File([blob], filename, { type: "image/png" });
+    const shareData = {
+      files: [file],
+      title: "BDO Treasure Tracker",
+      text: `${treasureData.name} progress from BDO Treasure Tracker`,
+      url: SHARE_EXPORT_URL
+    };
+
+    try {
+      if (!navigator.canShare({ files: [file] })) {
+        showToast("Sharing is not supported here. You can download or open the image instead.");
+        return;
+      }
+
+      await navigator.share(shareData);
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        return;
+      }
+
+      console.warn(`Native share failed for ${treasureId}:`, error);
+      showToast("Sharing is not supported here. You can download or open the image instead.");
+    }
+  });
+
+  downloadButton.addEventListener("click", () => {
+    downloadObjectUrl(objectUrl, filename);
+    showToast("Download started. If nothing happens, use Open Image and save it manually.");
+  });
+
+  openButton.addEventListener("click", () => {
+    const openedWindow = window.open(objectUrl, "_blank");
+    if (!openedWindow) {
+      showToast("Could not open the image automatically. Try Download PNG instead.");
+      return;
+    }
+
+    try {
+      openedWindow.opener = null;
+    } catch (error) {
+      console.warn("Could not clear opener for share preview window:", error);
+    }
+  });
+
+  dismissButton.addEventListener("click", closeModal);
+  closeButton.addEventListener("click", closeModal);
+
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      closeModal();
+    }
+  });
+
+  actions.appendChild(shareButton);
+  actions.appendChild(downloadButton);
+  actions.appendChild(openButton);
+  actions.appendChild(dismissButton);
+
+  card.appendChild(header);
+  card.appendChild(previewFrame);
+  card.appendChild(actions);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  window.requestAnimationFrame(() => {
+    overlay.classList.add("is-visible");
+    shareButton.focus();
+  });
+}
+
+async function generateTreasureShareCard(treasureId, options = {}) {
+  const { triggerButton = null } = options;
+  const treasureData = treasureState[treasureId];
+  if (!treasureData) return;
+
+  if (typeof window.html2canvas !== "function") {
+    showToast("Screenshot tool is not available. Please refresh and try again.");
+    return;
+  }
+
+  let stage = null;
+
+  try {
+    closeSharePreviewModal({ returnFocus: false });
+    stage = createShareCardStage();
+    const card = buildTreasureShareCard(treasureId);
+    stage.appendChild(card);
+    document.body.appendChild(stage);
+
+    await waitForShareCardAssets(card);
+
+    const canvas = await window.html2canvas(card, {
+      backgroundColor: "#081220",
+      scale: 2,
+      useCORS: true
+    });
+
+    const blob = await canvasToBlob(canvas);
+    if (!blob) {
+      throw new Error("Canvas export returned an empty blob.");
+    }
+
+    const filename = `bdo-treasure-progress-${treasureId}.png`;
+    openSharePreviewModal({
+      treasureId,
+      treasureData,
+      blob,
+      filename,
+      triggerButton
+    });
+  } catch (error) {
+    console.error(`Failed to generate share card for ${treasureId}:`, error);
+    showToast("Could not create progress card. Please try again.");
+  } finally {
+    if (stage) {
+      stage.remove();
+    }
+  }
+}
+
+function createShareProgressButton(treasureId, treasureName) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "share-progress-btn";
+  button.setAttribute("aria-label", `Share progress for ${treasureName}`);
+  button.setAttribute("title", `Share progress for ${treasureName}`);
+  button.setAttribute("aria-busy", "false");
+
+  button.appendChild(createCameraIcon());
+
+  const label = document.createElement("span");
+  label.className = "share-progress-label";
+  label.textContent = "Share Progress";
+  button.appendChild(label);
+
+  button.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (button.disabled) return;
+
+    showToast("Preparing progress card...");
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+
+    try {
+      await generateTreasureShareCard(treasureId, { triggerButton: button });
+    } finally {
+      button.disabled = false;
+      button.setAttribute("aria-busy", "false");
+    }
+  });
+
+  return button;
+}
+
 function createTreasurePanel(treasureId) {
   const treasureData = treasureState[treasureId];
   const treeId = `${treasureId}-tree`;
@@ -2620,9 +3384,15 @@ function createTreasurePanel(treasureId) {
   toggleButton.appendChild(titleGroup);
   titleRow.appendChild(toggleButton);
 
+  const titleActions = document.createElement("div");
+  titleActions.className = "panel-title-actions";
+  titleActions.appendChild(createShareProgressButton(treasureId, treasureData.name));
+
   if (treasureData.combine?.image || treasureData.combine?.text) {
-    titleRow.appendChild(createCombineButton(treasureData));
+    titleActions.appendChild(createCombineButton(treasureData));
   }
+
+  titleRow.appendChild(titleActions);
 
   const subtitle = document.createElement("p");
   subtitle.className = "panel-subtitle";
@@ -2900,9 +3670,14 @@ document.addEventListener("click", (event) => {
     closeAllTooltips();
   }
 
-  if (!event.target.closest(".combine-help-wrap")) {
+  if (!event.target.closest(".combine-help-wrap") && !event.target.closest(".combine-dialog-card")) {
     closeAllCombineTooltips();
   }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  closeAllCombineTooltips();
 });
 
 window.addEventListener("resize", () => {

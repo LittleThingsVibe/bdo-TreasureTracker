@@ -7,7 +7,13 @@ const SHARE_TOAST_ID = "shareToast";
 const SHARE_CARD_STAGE_ID = "shareCardStage";
 const SHARE_PREVIEW_DIALOG_ID = "sharePreviewDialog";
 const SHARE_EXPORT_URL = "https://bdotreasurehub.com/";
+const HTML2CANVAS_SCRIPT_ID = "html2canvasRuntime";
+const HTML2CANVAS_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
+const HTML2CANVAS_SCRIPT_INTEGRITY = "sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==";
+const HTML2CANVAS_LOAD_TIMEOUT_MS = 12000;
+const SHARE_ASSET_WAIT_TIMEOUT_MS = 4500;
 const PROGRESS_PAYLOAD_VERSION = 12;
+const LEGACY_PROGRESS_STORAGE_VERSIONS = [11];
 const VISUAL_INTRO_SESSION_KEY = "bdoTreasureTracker_visualIntroSeen_v1";
 const VISUAL_INTRO_LOCAL_KEY = "bdoTreasureTracker_visualIntroSeenAt_v1";
 const VISUAL_INTRO_RECENT_MS = 1000 * 60 * 60 * 18;
@@ -866,12 +872,74 @@ function toFiniteNumber(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function toFiniteInteger(value, fallback = 0) {
+  return Math.trunc(toFiniteNumber(value, fallback));
+}
+
+function normalizeCount(value, min = 0, max = Number.MAX_SAFE_INTEGER, fallback = 0) {
+  return clamp(toFiniteInteger(value, fallback), min, max);
+}
+
+function bindIntegerCountInput(input, options) {
+  const {
+    getValue,
+    setValue,
+    min = 0,
+    max = Number.MAX_SAFE_INTEGER,
+    onCommit = () => {}
+  } = options;
+
+  input.step = "1";
+  input.inputMode = "numeric";
+  input.min = String(min);
+  if (Number.isFinite(max)) {
+    input.max = String(max);
+  }
+
+  const commit = (forceBlank = false) => {
+    const rawValue = input.value.trim();
+    if (!rawValue && !forceBlank) return false;
+
+    const previousValue = normalizeCount(getValue(), min, max);
+    const nextValue = normalizeCount(rawValue || 0, min, max);
+    const displayChanged = input.value !== String(nextValue);
+    const valueChanged = nextValue !== previousValue;
+
+    setValue(nextValue);
+    input.value = String(nextValue);
+
+    if (valueChanged || displayChanged) {
+      onCommit(nextValue);
+      return true;
+    }
+
+    return false;
+  };
+
+  input.addEventListener("input", () => {
+    commit(false);
+  });
+
+  const finalize = () => {
+    commit(true);
+  };
+
+  input.addEventListener("change", finalize);
+  input.addEventListener("blur", finalize);
+}
+
 function hasOwn(object, key) {
   return Object.prototype.hasOwnProperty.call(object || {}, key);
 }
 
 function getStorageKey(treasureId) {
-  return `${STORAGE_PREFIX}${treasureId}_v11`;
+  return `${STORAGE_PREFIX}${treasureId}_v${PROGRESS_PAYLOAD_VERSION}`;
+}
+
+function getLegacyStorageKeys(treasureId) {
+  return LEGACY_PROGRESS_STORAGE_VERSIONS.map(
+    (version) => `${STORAGE_PREFIX}${treasureId}_v${version}`
+  );
 }
 
 function getTreasureIds() {
@@ -934,7 +1002,7 @@ function applyPieceProgress(piece, savedPiece) {
 
     const pityCurrent = getSavedValue(savedPiece, "pityCurrent", "pity", "current");
     if (piece.pity && pityCurrent !== undefined) {
-      piece.pity.current = clamp(toFiniteNumber(pityCurrent), 0, toFiniteNumber(piece.pity.max));
+      piece.pity.current = normalizeCount(pityCurrent, 0, toFiniteInteger(piece.pity.max));
     }
     return;
   }
@@ -948,9 +1016,9 @@ function applyPieceProgress(piece, savedPiece) {
     const materialCurrent = getSavedValue(savedPiece, "materialCurrent", "material", "current");
     if (piece.material && materialCurrent !== undefined) {
       piece.material.current = clamp(
-        toFiniteNumber(materialCurrent),
+        toFiniteInteger(materialCurrent),
         0,
-        toFiniteNumber(piece.material.required)
+        toFiniteInteger(piece.material.required)
       );
     }
     return;
@@ -965,18 +1033,18 @@ function applyPieceProgress(piece, savedPiece) {
     const lowerMaterialCurrent = getSavedValue(savedPiece, "lowerMaterialCurrent", "lowerMaterial", "current");
     if (piece.lowerMaterial && lowerMaterialCurrent !== undefined) {
       piece.lowerMaterial.current = clamp(
-        toFiniteNumber(lowerMaterialCurrent),
+        toFiniteInteger(lowerMaterialCurrent),
         0,
-        toFiniteNumber(piece.lowerMaterial.required)
+        toFiniteInteger(piece.lowerMaterial.required)
       );
     }
 
     const essenceCurrent = getSavedValue(savedPiece, "essenceCurrent", "essence", "current");
     if (piece.essence && essenceCurrent !== undefined) {
       piece.essence.current = clamp(
-        toFiniteNumber(essenceCurrent),
+        toFiniteInteger(essenceCurrent),
         0,
-        toFiniteNumber(piece.essence.required)
+        toFiniteInteger(piece.essence.required)
       );
     }
   }
@@ -995,32 +1063,32 @@ function extractPieceProgress(piece) {
   if (piece.type === "grind") {
     progress.fullDropObtained = !!piece.fullDrop?.obtained;
     progress.pityCurrent = clamp(
-      toFiniteNumber(piece.pity?.current),
+      toFiniteInteger(piece.pity?.current),
       0,
-      toFiniteNumber(piece.pity?.max)
+      toFiniteInteger(piece.pity?.max)
     );
   }
 
   if (piece.type === "crafted") {
     progress.obtained = !!piece.obtained;
     progress.materialCurrent = clamp(
-      toFiniteNumber(piece.material?.current),
+      toFiniteInteger(piece.material?.current),
       0,
-      toFiniteNumber(piece.material?.required)
+      toFiniteInteger(piece.material?.required)
     );
   }
 
   if (piece.type === "lifeskillCraft") {
     progress.obtained = !!piece.obtained;
     progress.lowerMaterialCurrent = clamp(
-      toFiniteNumber(piece.lowerMaterial?.current),
+      toFiniteInteger(piece.lowerMaterial?.current),
       0,
-      toFiniteNumber(piece.lowerMaterial?.required)
+      toFiniteInteger(piece.lowerMaterial?.required)
     );
     progress.essenceCurrent = clamp(
-      toFiniteNumber(piece.essence?.current),
+      toFiniteInteger(piece.essence?.current),
       0,
-      toFiniteNumber(piece.essence?.required)
+      toFiniteInteger(piece.essence?.required)
     );
   }
 
@@ -1167,11 +1235,62 @@ function writeStorageValue(storage, key, value) {
 
 function loadTreasureData(treasureId) {
   try {
-    const raw = localStorage.getItem(getStorageKey(treasureId));
-    if (!raw) return getDefaultTreasureData(treasureId);
+    const currentKey = getStorageKey(treasureId);
+    const currentRaw = localStorage.getItem(currentKey);
 
-    const parsed = JSON.parse(raw);
-    return normalizeLoadedData(treasureId, parsed);
+    if (currentRaw) {
+      try {
+        const parsed = JSON.parse(currentRaw);
+        if (parsed?.pieces && typeof parsed.pieces === "object") {
+          const currentData = normalizeLoadedData(treasureId, parsed);
+
+          getLegacyStorageKeys(treasureId).forEach((legacyKey) => {
+            try {
+              localStorage.removeItem(legacyKey);
+            } catch (error) {
+              console.warn(`Could not remove legacy progress key ${legacyKey}:`, error);
+            }
+          });
+
+          return currentData;
+        }
+      } catch (error) {
+        console.warn(`Current progress payload is invalid for ${treasureId}; checking legacy data.`, error);
+      }
+    }
+
+    for (const legacyKey of getLegacyStorageKeys(treasureId)) {
+      const legacyRaw = localStorage.getItem(legacyKey);
+      if (!legacyRaw) continue;
+
+      let legacyParsed = null;
+      try {
+        legacyParsed = JSON.parse(legacyRaw);
+      } catch (error) {
+        console.warn(`Legacy progress payload is invalid for ${treasureId}:`, error);
+        continue;
+      }
+      if (!legacyParsed?.pieces || typeof legacyParsed.pieces !== "object") continue;
+
+      const migratedData = normalizeLoadedData(treasureId, legacyParsed);
+      const migrated = saveJSONToStorage(
+        currentKey,
+        createProgressPayload(migratedData),
+        `${treasureId} progress migration`
+      );
+
+      if (migrated) {
+        try {
+          localStorage.removeItem(legacyKey);
+        } catch (error) {
+          console.warn(`Could not remove migrated progress key ${legacyKey}:`, error);
+        }
+      }
+
+      return migratedData;
+    }
+
+    return getDefaultTreasureData(treasureId);
   } catch (error) {
     console.error(`Failed to load saved progress for ${treasureId}:`, error);
     return getDefaultTreasureData(treasureId);
@@ -1179,7 +1298,21 @@ function loadTreasureData(treasureId) {
 }
 
 function saveTreasureData(treasureId, treasureData) {
-  saveJSONToStorage(getStorageKey(treasureId), createProgressPayload(treasureData), `${treasureId} progress`);
+  return saveJSONToStorage(
+    getStorageKey(treasureId),
+    createProgressPayload(treasureData),
+    `${treasureId} progress`
+  );
+}
+
+function removeTreasureProgressStorage(treasureId) {
+  for (const legacyKey of getLegacyStorageKeys(treasureId)) {
+    if (!removeStorageItem(legacyKey, `${treasureId} legacy progress`)) {
+      return false;
+    }
+  }
+
+  return removeStorageItem(getStorageKey(treasureId), `${treasureId} progress`);
 }
 
 function loadPanelState() {
@@ -1210,7 +1343,7 @@ function loadAtanisState() {
     const saved = JSON.parse(localStorage.getItem(ATANIS_STATE_KEY));
     if (saved && typeof saved === "object") {
       return {
-        total: clamp(toFiniteNumber(saved.total), 0, 999999)
+        total: normalizeCount(saved.total, 0, 999999)
       };
     }
   } catch (error) {
@@ -1221,7 +1354,11 @@ function loadAtanisState() {
 }
 
 function saveAtanisState(state) {
-  saveJSONToStorage(ATANIS_STATE_KEY, state, "Atanis state");
+  saveJSONToStorage(
+    ATANIS_STATE_KEY,
+    { total: normalizeCount(state?.total, 0, 999999) },
+    "Atanis state"
+  );
 }
 
 const treasureGrid = document.getElementById("treasureGrid");
@@ -1238,17 +1375,17 @@ getTreasureIds().forEach((treasureId) => {
 });
 
 function isGrindPieceComplete(piece) {
-  return !!piece.fullDrop?.obtained || toFiniteNumber(piece.pity?.current) >= toFiniteNumber(piece.pity?.max);
+  return !!piece.fullDrop?.obtained || toFiniteInteger(piece.pity?.current) >= toFiniteInteger(piece.pity?.max);
 }
 
 function isCraftedPieceComplete(piece) {
-  return !!piece.obtained || toFiniteNumber(piece.material?.current) >= toFiniteNumber(piece.material?.required);
+  return !!piece.obtained || toFiniteInteger(piece.material?.current) >= toFiniteInteger(piece.material?.required);
 }
 
 function isLifeSkillCraftPieceComplete(piece) {
   return !!piece.obtained || (
-    toFiniteNumber(piece.lowerMaterial?.current) >= toFiniteNumber(piece.lowerMaterial?.required) &&
-    toFiniteNumber(piece.essence?.current) >= toFiniteNumber(piece.essence?.required)
+    toFiniteInteger(piece.lowerMaterial?.current) >= toFiniteInteger(piece.lowerMaterial?.required) &&
+    toFiniteInteger(piece.essence?.current) >= toFiniteInteger(piece.essence?.required)
   );
 }
 
@@ -1267,15 +1404,15 @@ function isPieceComplete(piece) {
 function getPieceProgress(piece) {
   if (piece.type === "grind") {
     if (piece.fullDrop?.obtained) return 1;
-    const current = clamp(toFiniteNumber(piece.pity?.current), 0, toFiniteNumber(piece.pity?.max));
-    const max = toFiniteNumber(piece.pity?.max);
+    const current = clamp(toFiniteInteger(piece.pity?.current), 0, toFiniteInteger(piece.pity?.max));
+    const max = toFiniteInteger(piece.pity?.max);
     return max <= 0 ? 0 : current / max;
   }
 
   if (piece.type === "crafted") {
     if (piece.obtained) return 1;
-    const current = clamp(toFiniteNumber(piece.material?.current), 0, toFiniteNumber(piece.material?.required));
-    const required = toFiniteNumber(piece.material?.required);
+    const current = clamp(toFiniteInteger(piece.material?.current), 0, toFiniteInteger(piece.material?.required));
+    const required = toFiniteInteger(piece.material?.required);
     return required <= 0 ? 0 : current / required;
   }
 
@@ -1283,17 +1420,17 @@ function getPieceProgress(piece) {
     if (piece.obtained) return 1;
 
     const lowerCurrent = clamp(
-      toFiniteNumber(piece.lowerMaterial?.current),
+      toFiniteInteger(piece.lowerMaterial?.current),
       0,
-      toFiniteNumber(piece.lowerMaterial?.required)
+      toFiniteInteger(piece.lowerMaterial?.required)
     );
-    const lowerRequired = toFiniteNumber(piece.lowerMaterial?.required);
+    const lowerRequired = toFiniteInteger(piece.lowerMaterial?.required);
     const essenceCurrent = clamp(
-      toFiniteNumber(piece.essence?.current),
+      toFiniteInteger(piece.essence?.current),
       0,
-      toFiniteNumber(piece.essence?.required)
+      toFiniteInteger(piece.essence?.required)
     );
-    const essenceRequired = toFiniteNumber(piece.essence?.required);
+    const essenceRequired = toFiniteInteger(piece.essence?.required);
 
     const lowerProgress = lowerRequired <= 0 ? 0 : lowerCurrent / lowerRequired;
     const essenceProgress = essenceRequired <= 0 ? 0 : essenceCurrent / essenceRequired;
@@ -1315,11 +1452,50 @@ function isPotionTreasureId(treasureId) {
   return treasureId === "ornette" || treasureId === "odore";
 }
 
+function getSimplePieceMethod(piece, treasureId = "") {
+  const location = String(piece?.location || "").toLowerCase();
+
+  if (treasureId === "krogdalo" || location.includes("mythical awakening")) {
+    return {
+      id: "milestone",
+      badge: "Milestone",
+      badgeClass: "simple",
+      status: "Mythical horse milestone. Check when obtained."
+    };
+  }
+
+  if (location.includes("craft") || location.includes("market") || location.includes("exchange")) {
+    return {
+      id: "material",
+      badge: "Craft / Market",
+      badgeClass: "crafted",
+      status: "Supporting material from crafting or the Central Market. Check when ready."
+    };
+  }
+
+  return {
+    id: "drop",
+    badge: "Drop",
+    badgeClass: "simple",
+    status: "Treasure drop. Check when obtained."
+  };
+}
+
 function getTreasureTypeLabel(treasureData) {
   const types = new Set(treasureData.pieces.map((piece) => piece.type));
 
   if (types.has("lifeskillCraft")) return "Gathering + Crafted";
-  if (types.size === 1 && types.has("simple")) return "Drop Collection";
+  if (types.size === 1 && types.has("simple")) {
+    const methods = new Set(
+      treasureData.pieces.map((piece) => getSimplePieceMethod(piece, treasureData.id).id)
+    );
+
+    if (methods.size === 1 && methods.has("milestone")) return "Mythical Milestones";
+    if (methods.size === 1 && methods.has("material")) return "Material Collection";
+    if (methods.size === 1 && methods.has("drop")) return "Drop Collection";
+    if (methods.has("drop") && methods.has("material")) return "Drops + Materials";
+    return "Treasure Collection";
+  }
   if (types.size === 1 && types.has("grind")) return "Grind Progress";
   if (types.size === 1 && types.has("crafted")) return "Crafted Progress";
   if (types.has("grind") && types.has("crafted")) return "Grind + Crafted";
@@ -1396,7 +1572,7 @@ function createTipRow(icon, label, value) {
   const accent = document.createElement("span");
   accent.className = "tip-accent";
   accent.setAttribute("aria-hidden", "true");
-  accent.textContent = icon;
+  accent.appendChild(createLucideIcon(icon, "tip-row-icon"));
 
   row.appendChild(accent);
   row.appendChild(document.createTextNode(" "));
@@ -1421,7 +1597,7 @@ function createHelpButton(label) {
   button.className = "help";
   button.setAttribute("aria-label", label);
   button.setAttribute("aria-expanded", "false");
-  button.textContent = "i";
+  button.appendChild(createLucideIcon("info", "control-icon"));
   return button;
 }
 
@@ -1436,12 +1612,12 @@ function createTooltip(piece) {
   title.textContent = piece.name;
 
   tooltip.appendChild(title);
-  tooltip.appendChild(createTipRow("📍", "Location", piece.location || "Unknown"));
-  tooltip.appendChild(createTipRow("👾", "Mobs", piece.mobs || "Unknown"));
-  tooltip.appendChild(createTipRow("💡", "Tip", piece.tip || "No tip yet"));
+  tooltip.appendChild(createTipRow("map-pin", "Location", piece.location || "Unknown"));
+  tooltip.appendChild(createTipRow("target", "Mobs", piece.mobs || "Unknown"));
+  tooltip.appendChild(createTipRow("lightbulb", "Tip", piece.tip || "No tip yet"));
 
   if (piece.atanisNote) {
-    tooltip.appendChild(createTipRow("✨", "Atanis", piece.atanisNote));
+    tooltip.appendChild(createTipRow("sparkles", "Atanis", piece.atanisNote));
   }
 
   return tooltip;
@@ -1473,6 +1649,182 @@ function closeAllTooltips() {
   clearTooltipClasses();
 }
 
+const modalStack = [];
+const modalElementSnapshots = new Map();
+
+function getModalFocusableElements(overlay) {
+  const selector = [
+    "a[href]",
+    "button:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
+    "textarea:not([disabled])",
+    "[tabindex]:not([tabindex='-1'])"
+  ].join(",");
+
+  return Array.from(overlay.querySelectorAll(selector)).filter((element) => {
+    return !element.hidden && element.getAttribute("aria-hidden") !== "true";
+  });
+}
+
+function rememberModalElementState(element) {
+  if (modalElementSnapshots.has(element)) return;
+
+  modalElementSnapshots.set(element, {
+    inert: !!element.inert,
+    hadInertAttribute: element.hasAttribute("inert"),
+    ariaHidden: element.getAttribute("aria-hidden")
+  });
+}
+
+function restoreModalElementState(element) {
+  const snapshot = modalElementSnapshots.get(element);
+  if (!snapshot) return;
+
+  element.inert = snapshot.inert;
+  if (!snapshot.hadInertAttribute) {
+    element.removeAttribute("inert");
+  }
+
+  if (snapshot.ariaHidden === null) {
+    element.removeAttribute("aria-hidden");
+  } else {
+    element.setAttribute("aria-hidden", snapshot.ariaHidden);
+  }
+}
+
+function isModalLiveRegion(element) {
+  return element.id === SHARE_TOAST_ID || element.id === STORAGE_WARNING_ID;
+}
+
+function applyModalIsolation() {
+  const activeState = modalStack[modalStack.length - 1] || null;
+
+  Array.from(document.body.children).forEach((element) => {
+    rememberModalElementState(element);
+
+    if (isModalLiveRegion(element)) {
+      restoreModalElementState(element);
+      return;
+    }
+
+    if (activeState && element === activeState.overlay) {
+      restoreModalElementState(element);
+      return;
+    }
+
+    element.inert = true;
+    element.setAttribute("aria-hidden", "true");
+  });
+
+  document.body.classList.toggle("modal-open", modalStack.length > 0);
+}
+
+function handleModalKeydown(event) {
+  const activeState = modalStack[modalStack.length - 1];
+  if (!activeState) return;
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    activeState.onEscape();
+    return;
+  }
+
+  if (event.key !== "Tab") return;
+
+  const focusable = getModalFocusableElements(activeState.overlay);
+  if (!focusable.length) {
+    event.preventDefault();
+    activeState.overlay.focus();
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const current = document.activeElement;
+
+  if (event.shiftKey && (current === first || !activeState.overlay.contains(current))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (current === last || !activeState.overlay.contains(current))) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function activateModalAccessibility(overlay, options = {}) {
+  const existingState = modalStack.find((state) => state.overlay === overlay);
+  if (existingState) return;
+
+  const hadTabIndex = overlay.hasAttribute("tabindex");
+  const previousTabIndex = overlay.getAttribute("tabindex");
+  if (!hadTabIndex) {
+    overlay.setAttribute("tabindex", "-1");
+  }
+
+  const state = {
+    overlay,
+    initialFocus: options.initialFocus || null,
+    returnFocus: options.returnFocus || document.activeElement,
+    onEscape: typeof options.onEscape === "function" ? options.onEscape : () => {},
+    hadTabIndex,
+    previousTabIndex
+  };
+
+  modalStack.push(state);
+  if (modalStack.length === 1) {
+    document.addEventListener("keydown", handleModalKeydown, true);
+  }
+
+  applyModalIsolation();
+
+  window.requestAnimationFrame(() => {
+    const topState = modalStack[modalStack.length - 1];
+    if (topState !== state) return;
+    (state.initialFocus || getModalFocusableElements(overlay)[0] || overlay).focus();
+  });
+}
+
+function deactivateModalAccessibility(overlay, options = {}) {
+  const stateIndex = modalStack.findIndex((state) => state.overlay === overlay);
+  if (stateIndex < 0) return;
+
+  const [state] = modalStack.splice(stateIndex, 1);
+
+  if (!state.hadTabIndex) {
+    overlay.removeAttribute("tabindex");
+  } else if (state.previousTabIndex !== null) {
+    overlay.setAttribute("tabindex", state.previousTabIndex);
+  }
+
+  if (modalStack.length) {
+    applyModalIsolation();
+  } else {
+    document.removeEventListener("keydown", handleModalKeydown, true);
+    modalElementSnapshots.forEach((snapshot, element) => {
+      restoreModalElementState(element);
+    });
+    modalElementSnapshots.clear();
+    document.body.classList.remove("modal-open");
+  }
+
+  const shouldReturnFocus = options.returnFocus !== false;
+  const returnTarget = options.returnFocusTarget || state.returnFocus;
+  const activeOverlay = modalStack[modalStack.length - 1]?.overlay || null;
+
+  if (
+    shouldReturnFocus &&
+    returnTarget &&
+    typeof returnTarget.focus === "function" &&
+    (!activeOverlay || activeOverlay.contains(returnTarget))
+  ) {
+    window.requestAnimationFrame(() => {
+      returnTarget.focus();
+    });
+  }
+}
+
 let combineDialogState = null;
 
 function ensureCombineDialog() {
@@ -1502,7 +1854,7 @@ function ensureCombineDialog() {
   closeButton.type = "button";
   closeButton.className = "combine-dialog-close";
   closeButton.setAttribute("aria-label", "Close assembly preview");
-  closeButton.textContent = "x";
+  closeButton.appendChild(createLucideIcon("x", "control-icon"));
 
   const media = document.createElement("div");
   media.className = "combine-dialog-media";
@@ -1540,6 +1892,7 @@ function ensureCombineDialog() {
     media,
     image,
     text,
+    closeButton,
     activeTrigger: null,
     activeTreasureId: null
   };
@@ -1581,6 +1934,12 @@ function openCombineDialog(treasureData, triggerButton) {
   dialog.activeTreasureId = treasureData.id;
   dialog.overlay.hidden = false;
 
+  activateModalAccessibility(dialog.overlay, {
+    initialFocus: dialog.closeButton,
+    returnFocus: triggerButton,
+    onEscape: () => closeAllCombineTooltips()
+  });
+
   window.requestAnimationFrame(() => {
     dialog.overlay.classList.add("is-visible");
   });
@@ -1594,6 +1953,10 @@ function closeAllCombineTooltips(options = {}) {
   const activeTrigger = dialog.activeTrigger;
   const activeWrap = activeTrigger?.closest(".combine-help-wrap");
 
+  deactivateModalAccessibility(dialog.overlay, {
+    returnFocus,
+    returnFocusTarget: activeTrigger
+  });
   dialog.overlay.classList.remove("is-visible");
   dialog.overlay.hidden = true;
 
@@ -1607,12 +1970,6 @@ function closeAllCombineTooltips(options = {}) {
 
   dialog.activeTrigger = null;
   dialog.activeTreasureId = null;
-
-  if (returnFocus && activeTrigger) {
-    window.requestAnimationFrame(() => {
-      activeTrigger.focus();
-    });
-  }
 }
 
 function createPieceBadge(text, extraClass = "") {
@@ -1627,6 +1984,91 @@ function createPanelPill(text, className = "") {
   pill.className = `panel-pill ${className}`.trim();
   pill.textContent = text;
   return pill;
+}
+
+function createLucideIcon(name, className = "") {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.classList.add("lucide-icon");
+
+  if (className) {
+    className.split(/\s+/).filter(Boolean).forEach((token) => svg.classList.add(token));
+  }
+
+  const appendPath = (data) => {
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", data);
+    svg.appendChild(path);
+  };
+
+  if (name === "info") {
+    const circle = document.createElementNS(svgNS, "circle");
+    circle.setAttribute("cx", "12");
+    circle.setAttribute("cy", "12");
+    circle.setAttribute("r", "10");
+    svg.appendChild(circle);
+    appendPath("M12 16v-4");
+    appendPath("M12 8h.01");
+  } else if (name === "x") {
+    appendPath("M18 6 6 18");
+    appendPath("m6 6 12 12");
+  } else if (name === "wrench") {
+    appendPath("M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94Z");
+  } else if (name === "map-pin") {
+    appendPath("M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0Z");
+    const circle = document.createElementNS(svgNS, "circle");
+    circle.setAttribute("cx", "12");
+    circle.setAttribute("cy", "10");
+    circle.setAttribute("r", "3");
+    svg.appendChild(circle);
+  } else if (name === "target") {
+    [10, 6, 2].forEach((radius) => {
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", "12");
+      circle.setAttribute("cy", "12");
+      circle.setAttribute("r", String(radius));
+      svg.appendChild(circle);
+    });
+  } else if (name === "lightbulb") {
+    appendPath("M9 18h6");
+    appendPath("M10 22h4");
+    appendPath("M8.5 14.5A6 6 0 1 1 15.5 14.5c-.9.7-1.5 1.6-1.5 2.5h-4c0-.9-.6-1.8-1.5-2.5Z");
+  } else if (name === "sparkles") {
+    appendPath("m12 3-1.1 3.1a2 2 0 0 1-1.2 1.2L6.5 8.5l3.2 1.2a2 2 0 0 1 1.2 1.2L12 14l1.1-3.1a2 2 0 0 1 1.2-1.2l3.2-1.2-3.2-1.2a2 2 0 0 1-1.2-1.2Z");
+    appendPath("m5 3 .5 1.4A1 1 0 0 0 6.1 5L7.5 5.5 6.1 6a1 1 0 0 0-.6.6L5 8l-.5-1.4A1 1 0 0 0 3.9 6L2.5 5.5 3.9 5a1 1 0 0 0 .6-.6Z");
+    appendPath("m19 16 .6 1.6a1 1 0 0 0 .6.6l1.8.6-1.8.6a1 1 0 0 0-.6.6L19 22l-.6-1.6a1 1 0 0 0-.6-.6l-1.8-.6 1.8-.6a1 1 0 0 0 .6-.6Z");
+  }
+
+  return svg;
+}
+
+function configureProgressBar(progressBar, label) {
+  progressBar.setAttribute("role", "progressbar");
+  progressBar.setAttribute("aria-label", label);
+  progressBar.setAttribute("aria-valuemin", "0");
+  progressBar.setAttribute("aria-valuemax", "100");
+  progressBar.setAttribute("aria-valuenow", "0");
+}
+
+function updateProgressBar(progressBar, percent, valueText = "") {
+  const safePercent = clamp(Math.round(toFiniteNumber(percent)), 0, 100);
+  progressBar.setAttribute("aria-valuenow", String(safePercent));
+
+  if (valueText) {
+    progressBar.setAttribute("aria-valuetext", valueText);
+  } else {
+    progressBar.removeAttribute("aria-valuetext");
+  }
 }
 
 function createChevron() {
@@ -1811,6 +2253,10 @@ function attachTooltipHandlers(help, tooltip) {
     hideTooltip(tooltip);
     help.focus();
   });
+
+  help.addEventListener("blur", () => {
+    hideTooltip(tooltip);
+  });
 }
 
 function createCombineButton(treasureData) {
@@ -1828,7 +2274,7 @@ function createCombineButton(treasureData) {
   const buttonIcon = document.createElement("span");
   buttonIcon.className = "combine-help-icon";
   buttonIcon.setAttribute("aria-hidden", "true");
-  buttonIcon.textContent = "⚒";
+  buttonIcon.appendChild(createLucideIcon("wrench", "control-icon"));
   button.appendChild(buttonIcon);
 
   button.addEventListener("click", (event) => {
@@ -1859,7 +2305,7 @@ function getAtanisEligiblePieces() {
       if (piece.type !== "grind" || !piece.atanisNote || !piece.pity) return;
 
       const complete = isGrindPieceComplete(piece);
-      const remaining = Math.max(0, toFiniteNumber(piece.pity.max) - toFiniteNumber(piece.pity.current));
+      const remaining = Math.max(0, toFiniteInteger(piece.pity.max) - toFiniteInteger(piece.pity.current));
 
       eligible.push({
         treasureId,
@@ -1876,7 +2322,7 @@ function getAtanisEligiblePieces() {
 }
 
 function getAtanisDistribution() {
-  const total = clamp(toFiniteNumber(atanisState.total), 0, 999999);
+  const total = normalizeCount(atanisState.total, 0, 999999);
   let remainingPool = total;
 
   const targets = getAtanisEligiblePieces()
@@ -2039,17 +2485,24 @@ function createAtanisHelper() {
 
   const summary = document.createElement("div");
   summary.className = "atanis-helper-summary";
+  summary.setAttribute("role", "status");
+  summary.setAttribute("aria-live", "polite");
+  summary.setAttribute("aria-atomic", "true");
   summary.replaceChildren(createAtanisSummaryNode(distribution));
 
   helper.appendChild(head);
   helper.appendChild(summary);
 
-  input.addEventListener("input", () => {
-    const safeValue = clamp(toFiniteNumber(input.value), 0, 999999);
-    atanisState.total = safeValue;
-    input.value = safeValue;
-    saveAtanisState(atanisState);
-    refreshAtanisUI();
+  bindIntegerCountInput(input, {
+    getValue: () => atanisState.total,
+    setValue: (value) => {
+      atanisState.total = value;
+    },
+    max: 999999,
+    onCommit: () => {
+      saveAtanisState(atanisState);
+      refreshAtanisUI();
+    }
   });
 
   return helper;
@@ -2114,17 +2567,24 @@ function createAtanisMirrorHelper() {
 
   const summary = document.createElement("div");
   summary.className = "atanis-mirror-summary";
+  summary.setAttribute("role", "status");
+  summary.setAttribute("aria-live", "polite");
+  summary.setAttribute("aria-atomic", "true");
   summary.replaceChildren(createAtanisSummaryNode(distribution));
 
   helper.appendChild(head);
   helper.appendChild(summary);
 
-  input.addEventListener("input", () => {
-    const safeValue = clamp(toFiniteNumber(input.value), 0, 999999);
-    atanisState.total = safeValue;
-    input.value = safeValue;
-    saveAtanisState(atanisState);
-    refreshAtanisUI();
+  bindIntegerCountInput(input, {
+    getValue: () => atanisState.total,
+    setValue: (value) => {
+      atanisState.total = value;
+    },
+    max: 999999,
+    onCommit: () => {
+      saveAtanisState(atanisState);
+      refreshAtanisUI();
+    }
   });
 
   return helper;
@@ -2174,6 +2634,7 @@ function createSimplePiece(piece, treasureId, onUpdate) {
   wrapper.className = "piece";
 
   const isKrogdalo = treasureId === "krogdalo";
+  const method = getSimplePieceMethod(piece, treasureId);
 
   const header = document.createElement("div");
   header.className = "piece-title";
@@ -2188,7 +2649,7 @@ function createSimplePiece(piece, treasureId, onUpdate) {
   titleText.className = "piece-name";
   titleText.textContent = piece.name;
 
-  const badge = createPieceBadge("Simple", "simple");
+  const badge = createPieceBadge(method.badge, method.badgeClass);
 
   header.appendChild(checkbox);
 
@@ -2200,23 +2661,21 @@ function createSimplePiece(piece, treasureId, onUpdate) {
   header.appendChild(badge);
   wrapper.appendChild(header);
 
-  if (!isKrogdalo) {
-    wrapper.appendChild(createStatusRow("Status", "Pure drop / milestone item. Check when obtained.", "sub simple-note"));
+  wrapper.appendChild(createStatusRow("Status", method.status, "sub simple-note"));
 
-    const tooltip = createTooltip(piece);
-    wrapper.appendChild(tooltip);
+  const tooltip = createTooltip(piece);
+  wrapper.appendChild(tooltip);
 
-    const helpRow = document.createElement("div");
-    helpRow.className = "sub";
+  const helpRow = document.createElement("div");
+  helpRow.className = "sub";
 
-    const help = createHelpButton(`Show item details for ${piece.name}`);
+  const help = createHelpButton(`Show item details for ${piece.name}`);
 
-    helpRow.appendChild(help);
-    helpRow.appendChild(document.createTextNode("Item details"));
-    wrapper.appendChild(helpRow);
+  helpRow.appendChild(help);
+  helpRow.appendChild(document.createTextNode("Item details"));
+  wrapper.appendChild(helpRow);
 
-    attachTooltipHandlers(help, tooltip);
-  }
+  attachTooltipHandlers(help, tooltip);
 
   function updateState() {
     wrapper.classList.toggle("completed-piece", !!piece.obtained);
@@ -2308,6 +2767,7 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
 
   const bar = document.createElement("div");
   bar.className = "bar";
+  configureProgressBar(bar, `${piece.name} pity progress`);
 
   const fill = document.createElement("div");
   fill.className = "fill";
@@ -2330,6 +2790,8 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
 
     const atanisLabel = document.createElement("span");
     atanisLabel.setAttribute("data-atanis-piece-token", `${treasureId}:${pieceIndex}`);
+    atanisLabel.setAttribute("aria-live", "polite");
+    atanisLabel.setAttribute("aria-atomic", "true");
     const supportLabel = document.createElement("strong");
     supportLabel.textContent = "Atanis Support:";
     atanisLabel.replaceChildren(supportLabel, document.createTextNode(" Available through the shared potion helper."));
@@ -2352,7 +2814,15 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
     mainCheckbox.checked = completed;
     fullDropCheckbox.checked = !!piece.fullDrop.obtained;
     wrapper.classList.toggle("completed-piece", completed);
-    fill.style.width = `${Math.round(getPieceProgress(piece) * 100)}%`;
+    const progressPercent = Math.round(getPieceProgress(piece) * 100);
+    fill.style.width = `${progressPercent}%`;
+    updateProgressBar(
+      bar,
+      progressPercent,
+      piece.fullDrop.obtained
+        ? "Full drop obtained"
+        : `${piece.pity.current} of ${piece.pity.max} pity items`
+    );
   }
 
   function persistAndRefresh() {
@@ -2367,14 +2837,16 @@ function createGrindPiece(piece, treasureId, pieceIndex, onUpdate) {
     persistAndRefresh();
   });
 
-  pityInput.addEventListener("input", () => {
-    const safeValue = clamp(toFiniteNumber(pityInput.value), 0, piece.pity.max);
-
-    piece.pity.current = safeValue;
-    pityInput.value = safeValue;
-
-    updatePieceState();
-    persistAndRefresh();
+  bindIntegerCountInput(pityInput, {
+    getValue: () => piece.pity.current,
+    setValue: (value) => {
+      piece.pity.current = value;
+    },
+    max: piece.pity.max,
+    onCommit: () => {
+      updatePieceState();
+      persistAndRefresh();
+    }
   });
 
   attachTooltipHandlers(help, tooltip);
@@ -2449,6 +2921,7 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
 
   const bar = document.createElement("div");
   bar.className = "bar";
+  configureProgressBar(bar, `${piece.name} material progress`);
 
   const fill = document.createElement("div");
   fill.className = "fill";
@@ -2474,7 +2947,15 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
 
     materialInput.value = piece.material.current;
     wrapper.classList.toggle("completed-piece", isCraftedPieceComplete(piece));
-    fill.style.width = `${Math.round(getPieceProgress(piece) * 100)}%`;
+    const progressPercent = Math.round(getPieceProgress(piece) * 100);
+    fill.style.width = `${progressPercent}%`;
+    updateProgressBar(
+      bar,
+      progressPercent,
+      piece.obtained && piece.material.current < piece.material.required
+        ? `Obtained; ${piece.material.current} of ${piece.material.required} materials tracked`
+        : `${piece.material.current} of ${piece.material.required} materials`
+    );
   }
 
   function persistAndRefresh() {
@@ -2489,19 +2970,22 @@ function createCraftedPiece(piece, treasureId, onUpdate) {
     persistAndRefresh();
   });
 
-  materialInput.addEventListener("input", () => {
-    const safeValue = clamp(toFiniteNumber(materialInput.value), 0, piece.material.required);
+  bindIntegerCountInput(materialInput, {
+    getValue: () => piece.material.current,
+    setValue: (value) => {
+      piece.material.current = value;
+    },
+    max: piece.material.required,
+    onCommit: () => {
+      if (piece.material.current >= piece.material.required) {
+        piece.obtained = true;
+      } else if (!checkbox.checked) {
+        piece.obtained = false;
+      }
 
-    piece.material.current = safeValue;
-
-    if (piece.material.current >= piece.material.required) {
-      piece.obtained = true;
-    } else if (!checkbox.checked) {
-      piece.obtained = false;
+      updatePieceState();
+      persistAndRefresh();
     }
-
-    updatePieceState();
-    persistAndRefresh();
   });
 
   attachTooltipHandlers(help, tooltip);
@@ -2598,6 +3082,7 @@ function createLifeSkillCraftPiece(piece, treasureId, onUpdate) {
 
   const bar = document.createElement("div");
   bar.className = "bar";
+  configureProgressBar(bar, `${piece.name} crafting progress`);
 
   const fill = document.createElement("div");
   fill.className = "fill";
@@ -2640,7 +3125,14 @@ function createLifeSkillCraftPiece(piece, treasureId, onUpdate) {
     lowerInput.value = piece.lowerMaterial.current;
     essenceInput.value = piece.essence.current;
     wrapper.classList.toggle("completed-piece", isLifeSkillCraftPieceComplete(piece));
-    fill.style.width = `${Math.round(getPieceProgress(piece) * 100)}%`;
+    const progressPercent = Math.round(getPieceProgress(piece) * 100);
+    fill.style.width = `${progressPercent}%`;
+    updateProgressBar(
+      bar,
+      progressPercent,
+      `${piece.lowerMaterial.current} of ${piece.lowerMaterial.required} gathering materials and ` +
+        `${piece.essence.current} of ${piece.essence.required} essence`
+    );
   }
 
   function persistAndRefresh() {
@@ -2655,24 +3147,28 @@ function createLifeSkillCraftPiece(piece, treasureId, onUpdate) {
     persistAndRefresh();
   });
 
-  lowerInput.addEventListener("input", () => {
-    piece.lowerMaterial.current = clamp(
-      toFiniteNumber(lowerInput.value),
-      0,
-      piece.lowerMaterial.required
-    );
-    updatePieceState();
-    persistAndRefresh();
+  bindIntegerCountInput(lowerInput, {
+    getValue: () => piece.lowerMaterial.current,
+    setValue: (value) => {
+      piece.lowerMaterial.current = value;
+    },
+    max: piece.lowerMaterial.required,
+    onCommit: () => {
+      updatePieceState();
+      persistAndRefresh();
+    }
   });
 
-  essenceInput.addEventListener("input", () => {
-    piece.essence.current = clamp(
-      toFiniteNumber(essenceInput.value),
-      0,
-      piece.essence.required
-    );
-    updatePieceState();
-    persistAndRefresh();
+  bindIntegerCountInput(essenceInput, {
+    getValue: () => piece.essence.current,
+    setValue: (value) => {
+      piece.essence.current = value;
+    },
+    max: piece.essence.required,
+    onCommit: () => {
+      updatePieceState();
+      persistAndRefresh();
+    }
   });
 
   attachTooltipHandlers(help, tooltip);
@@ -2686,7 +3182,7 @@ function createMarketFlavorNode(treasureId) {
   flavor.className = "market-flavor hidden";
 
   if (treasureId === "ornette" || treasureId === "odore") {
-    flavor.textContent = "(or skip it for ~8.5B on the marketplace)";
+    flavor.textContent = "(Central Market availability and prices vary by region)";
   }
 
   return flavor;
@@ -2703,10 +3199,10 @@ function createShareCardIcon(src, alt, className) {
 }
 
 function formatSharePair(current, required) {
-  const safeRequired = Math.max(0, toFiniteNumber(required));
+  const safeRequired = Math.max(0, toFiniteInteger(required));
   const safeCurrent = safeRequired > 0
-    ? clamp(toFiniteNumber(current), 0, safeRequired)
-    : Math.max(0, toFiniteNumber(current));
+    ? clamp(toFiniteInteger(current), 0, safeRequired)
+    : Math.max(0, toFiniteInteger(current));
 
   return safeRequired > 0 ? `${safeCurrent} / ${safeRequired}` : `${safeCurrent}`;
 }
@@ -2733,7 +3229,7 @@ function getSharePieceStatus(piece) {
   if (piece.type === "crafted") {
     const materialSummary = formatSharePair(piece.material?.current, piece.material?.required);
 
-    if (piece.obtained && toFiniteNumber(piece.material?.current) < toFiniteNumber(piece.material?.required)) {
+    if (piece.obtained && toFiniteInteger(piece.material?.current) < toFiniteInteger(piece.material?.required)) {
       return {
         complete: true,
         summary: "Obtained",
@@ -2755,8 +3251,8 @@ function getSharePieceStatus(piece) {
     if (
       piece.obtained &&
       (
-        toFiniteNumber(piece.lowerMaterial?.current) < toFiniteNumber(piece.lowerMaterial?.required) ||
-        toFiniteNumber(piece.essence?.current) < toFiniteNumber(piece.essence?.required)
+        toFiniteInteger(piece.lowerMaterial?.current) < toFiniteInteger(piece.lowerMaterial?.required) ||
+        toFiniteInteger(piece.essence?.current) < toFiniteInteger(piece.essence?.required)
       )
     ) {
       return {
@@ -2824,7 +3320,7 @@ function createSharePieceItem(piece) {
 function buildTreasureShareCard(treasureId) {
   const treasureData = treasureState[treasureId];
   const { total, completed, percent } = calculateOverallProgress(treasureData);
-  const isNewTreasure = treasureId === "nostos" || treasureData.name.includes("Star of Nostos");
+  const isNewTreasure = !!treasureData.isNew;
 
   const card = document.createElement("article");
   card.className = "treasure-share-card";
@@ -2939,6 +3435,82 @@ function buildTreasureShareCard(treasureId) {
   return card;
 }
 
+let html2CanvasLoadPromise = null;
+
+function ensureHtml2CanvasLoaded() {
+  if (typeof window.html2canvas === "function") {
+    return Promise.resolve(window.html2canvas);
+  }
+
+  if (html2CanvasLoadPromise) {
+    return html2CanvasLoadPromise;
+  }
+
+  html2CanvasLoadPromise = new Promise((resolve, reject) => {
+    const staleScript = document.getElementById(HTML2CANVAS_SCRIPT_ID);
+    if (staleScript) {
+      staleScript.remove();
+    }
+
+    const script = document.createElement("script");
+    script.id = HTML2CANVAS_SCRIPT_ID;
+    script.src = HTML2CANVAS_SCRIPT_URL;
+    script.async = true;
+    script.integrity = HTML2CANVAS_SCRIPT_INTEGRITY;
+    script.crossOrigin = "anonymous";
+    script.referrerPolicy = "no-referrer";
+
+    let settled = false;
+    const finish = (error = null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      script.removeEventListener("load", onLoad);
+      script.removeEventListener("error", onError);
+
+      if (error) {
+        script.remove();
+        reject(error);
+        return;
+      }
+
+      resolve(window.html2canvas);
+    };
+
+    const createLoadError = (message) => {
+      const error = new Error(message);
+      error.code = "HTML2CANVAS_LOAD_FAILED";
+      return error;
+    };
+
+    const onLoad = () => {
+      if (typeof window.html2canvas !== "function") {
+        finish(createLoadError("Screenshot library loaded without exposing html2canvas."));
+        return;
+      }
+
+      finish();
+    };
+
+    const onError = () => {
+      finish(createLoadError("Screenshot library could not be loaded."));
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      finish(createLoadError("Screenshot library load timed out."));
+    }, HTML2CANVAS_LOAD_TIMEOUT_MS);
+
+    script.addEventListener("load", onLoad, { once: true });
+    script.addEventListener("error", onError, { once: true });
+    document.head.appendChild(script);
+  }).catch((error) => {
+    html2CanvasLoadPromise = null;
+    throw error;
+  });
+
+  return html2CanvasLoadPromise;
+}
+
 function createShareCardStage() {
   const existingStage = document.getElementById(SHARE_CARD_STAGE_ID);
   if (existingStage) {
@@ -2954,26 +3526,37 @@ function createShareCardStage() {
 async function waitForShareCardAssets(root) {
   const images = Array.from(root.querySelectorAll("img"));
   const imagePromises = images.map((image) => {
-    if (image.complete && image.naturalWidth > 0) {
+    if (image.complete) {
       return Promise.resolve();
     }
 
     return new Promise((resolve) => {
-      const done = () => resolve();
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        image.removeEventListener("load", done);
+        image.removeEventListener("error", done);
+        resolve();
+      };
+
+      const timeoutId = window.setTimeout(done, SHARE_ASSET_WAIT_TIMEOUT_MS);
       image.addEventListener("load", done, { once: true });
       image.addEventListener("error", done, { once: true });
     });
   });
 
-  await Promise.all(imagePromises);
+  const fontPromise = document.fonts?.ready
+    ? Promise.race([
+      document.fonts.ready.catch((error) => {
+        console.warn("Font readiness check failed:", error);
+      }),
+      wait(SHARE_ASSET_WAIT_TIMEOUT_MS)
+    ])
+    : Promise.resolve();
 
-  if (document.fonts?.ready) {
-    try {
-      await document.fonts.ready;
-    } catch (error) {
-      console.warn("Font readiness check failed:", error);
-    }
-  }
+  await Promise.all([Promise.all(imagePromises), fontPromise]);
 
   await wait(40);
 }
@@ -3018,15 +3601,14 @@ function closeSharePreviewModal(options = {}) {
 
   const triggerButton = overlay.activeTrigger || null;
   const objectUrl = overlay.objectUrl || "";
-  const removeKeydown = overlay.removeKeydownListener;
 
-  overlay.removeKeydownListener = null;
   overlay.activeTrigger = null;
   overlay.objectUrl = "";
 
-  if (typeof removeKeydown === "function") {
-    removeKeydown();
-  }
+  deactivateModalAccessibility(overlay, {
+    returnFocus,
+    returnFocusTarget: triggerButton
+  });
 
   overlay.remove();
 
@@ -3034,11 +3616,6 @@ function closeSharePreviewModal(options = {}) {
     URL.revokeObjectURL(objectUrl);
   }
 
-  if (returnFocus && triggerButton) {
-    window.requestAnimationFrame(() => {
-      triggerButton.focus();
-    });
-  }
 }
 
 function openSharePreviewModal({
@@ -3049,6 +3626,7 @@ function openSharePreviewModal({
   triggerButton
 }) {
   closeSharePreviewModal({ returnFocus: false });
+  closeAllCombineTooltips({ returnFocus: false });
 
   const objectUrl = URL.createObjectURL(blob);
   const overlay = document.createElement("div");
@@ -3088,7 +3666,7 @@ function openSharePreviewModal({
   closeButton.type = "button";
   closeButton.className = "share-preview-close";
   closeButton.setAttribute("aria-label", "Close share progress preview");
-  closeButton.textContent = "x";
+  closeButton.appendChild(createLucideIcon("x", "control-icon"));
   header.appendChild(closeButton);
 
   const previewFrame = document.createElement("div");
@@ -3127,19 +3705,6 @@ function openSharePreviewModal({
   const closeModal = () => {
     closeSharePreviewModal();
   };
-
-  const onKeyDown = (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeModal();
-    }
-  };
-
-  overlay.removeKeydownListener = () => {
-    document.removeEventListener("keydown", onKeyDown);
-  };
-
-  document.addEventListener("keydown", onKeyDown);
 
   shareButton.addEventListener("click", async () => {
     if (
@@ -3216,9 +3781,14 @@ function openSharePreviewModal({
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 
+  activateModalAccessibility(overlay, {
+    initialFocus: shareButton,
+    returnFocus: triggerButton,
+    onEscape: closeModal
+  });
+
   window.requestAnimationFrame(() => {
     overlay.classList.add("is-visible");
-    shareButton.focus();
   });
 }
 
@@ -3227,14 +3797,10 @@ async function generateTreasureShareCard(treasureId, options = {}) {
   const treasureData = treasureState[treasureId];
   if (!treasureData) return;
 
-  if (typeof window.html2canvas !== "function") {
-    showToast("Screenshot tool is not available. Please refresh and try again.");
-    return;
-  }
-
   let stage = null;
 
   try {
+    await ensureHtml2CanvasLoaded();
     closeSharePreviewModal({ returnFocus: false });
     stage = createShareCardStage();
     const card = buildTreasureShareCard(treasureId);
@@ -3264,7 +3830,11 @@ async function generateTreasureShareCard(treasureId, options = {}) {
     });
   } catch (error) {
     console.error(`Failed to generate share card for ${treasureId}:`, error);
-    showToast("Could not create progress card. Please try again.");
+    showToast(
+      error?.code === "HTML2CANVAS_LOAD_FAILED"
+        ? "Screenshot tool could not load. Check your connection and try again."
+        : "Could not create progress card. Please try again."
+    );
   } finally {
     if (stage) {
       stage.remove();
@@ -3311,8 +3881,10 @@ function createShareProgressButton(treasureId, treasureName) {
 function createTreasurePanel(treasureId) {
   const treasureData = treasureState[treasureId];
   const treeId = `${treasureId}-tree`;
+  const headingId = `${treasureId}-heading`;
   const panel = document.createElement("section");
   panel.className = `treasure-panel treasure-${treasureId}`;
+  panel.setAttribute("aria-labelledby", headingId);
 
   if (isSimpleTreasure(treasureData)) {
     panel.classList.add("simple-layout");
@@ -3339,7 +3911,7 @@ function createTreasurePanel(treasureId) {
   toggleButton.type = "button";
   toggleButton.className = "panel-toggle-button";
   toggleButton.setAttribute("aria-controls", treeId);
-  toggleButton.setAttribute("aria-label", `Toggle ${treasureData.name} progress panel`);
+  toggleButton.setAttribute("aria-label", treasureData.name);
 
   const titleGroup = document.createElement("span");
   titleGroup.className = "panel-title-group";
@@ -3356,10 +3928,10 @@ function createTreasurePanel(treasureId) {
   const titleLine = document.createElement("span");
   titleLine.className = "panel-title-line";
 
-  const title = document.createElement("span");
-  title.className = "panel-heading";
-  title.textContent = treasureData.name;
-  titleLine.appendChild(title);
+  const titleText = document.createElement("span");
+  titleText.className = "panel-heading-text";
+  titleText.textContent = treasureData.name;
+  titleLine.appendChild(titleText);
 
   if (treasureData.isNew) {
     const newBadge = document.createElement("span");
@@ -3382,7 +3954,12 @@ function createTreasurePanel(treasureId) {
 
   titleGroup.appendChild(titleMain);
   toggleButton.appendChild(titleGroup);
-  titleRow.appendChild(toggleButton);
+
+  const title = document.createElement("h2");
+  title.id = headingId;
+  title.className = "panel-heading";
+  title.appendChild(toggleButton);
+  titleRow.appendChild(title);
 
   const titleActions = document.createElement("div");
   titleActions.className = "panel-title-actions";
@@ -3407,6 +3984,9 @@ function createTreasurePanel(treasureId) {
 
   const overallBox = document.createElement("div");
   overallBox.className = "overall-box";
+  overallBox.setAttribute("role", "status");
+  overallBox.setAttribute("aria-live", "polite");
+  overallBox.setAttribute("aria-atomic", "true");
 
   const overallLabel = document.createElement("span");
   overallLabel.className = "overall-label";
@@ -3427,8 +4007,9 @@ function createTreasurePanel(treasureId) {
 
   const resetButton = document.createElement("button");
   resetButton.type = "button";
-  resetButton.className = "ghost-btn";
+  resetButton.className = "ghost-btn reset-progress-btn";
   resetButton.textContent = "Reset Progress";
+  resetButton.setAttribute("aria-label", `Reset progress for ${treasureData.name}`);
 
   actions.appendChild(overallBox);
   actions.appendChild(resetButton);
@@ -3439,6 +4020,7 @@ function createTreasurePanel(treasureId) {
 
   const overallBar = document.createElement("div");
   overallBar.className = "overall-bar";
+  configureProgressBar(overallBar, `${treasureData.name} overall progress`);
 
   const overallFill = document.createElement("div");
   overallFill.className = "overall-fill";
@@ -3448,6 +4030,7 @@ function createTreasurePanel(treasureId) {
   const tree = document.createElement("section");
   tree.className = "tree";
   tree.id = treeId;
+  tree.setAttribute("aria-labelledby", headingId);
   panel.appendChild(tree);
 
   function syncPanelExpandedState() {
@@ -3462,6 +4045,11 @@ function createTreasurePanel(treasureId) {
     overallValue.textContent = `${percent}%`;
     overallCount.textContent = `${completed} / ${total} completed`;
     overallFill.style.width = `${percent}%`;
+    updateProgressBar(
+      overallBar,
+      percent,
+      `${completed} of ${total} pieces completed; ${percent} percent overall`
+    );
 
     if (isPotionTreasureId(treasureId) && completed < total) {
       marketFlavor.classList.remove("hidden");
@@ -3530,13 +4118,20 @@ function createTreasurePanel(treasureId) {
     const confirmed = window.confirm(`Reset all saved progress for ${treasureData.name}?`);
     if (!confirmed) return;
 
-    if (!removeStorageItem(getStorageKey(treasureId), `${treasureId} progress`)) return;
+    if (!removeTreasureProgressStorage(treasureId)) return;
     treasureState[treasureId] = getDefaultTreasureData(treasureId);
 
     const freshPanel = createTreasurePanel(treasureId);
     panel.replaceWith(freshPanel);
     registerPanelVisual(freshPanel);
     refreshAtanisUI();
+    showToast(`${treasureData.name} progress reset.`);
+
+    const freshResetButton = freshPanel.querySelector(".reset-progress-btn");
+    const fallbackFocus = freshPanel.querySelector(".panel-toggle-button");
+    window.requestAnimationFrame(() => {
+      (freshResetButton || fallbackFocus)?.focus();
+    });
   });
 
   rerenderTree();

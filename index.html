@@ -101,12 +101,57 @@
       aria-label="Leave feedback"
       title="Leave feedback"
     >
-      <span class="floating-action-icon" aria-hidden="true">💬</span>
+      <span class="floating-action-icon" aria-hidden="true">
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+        </svg>
+      </span>
       <span class="floating-action-text">Leave feedback</span>
     </a>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+    (() => {
+      const revealApp = () => {
+        if (!document.body.classList.contains("is-loading")) return;
+
+        document.body.classList.remove("is-loading");
+        const loader = document.getElementById("startupLoader");
+        if (loader) loader.hidden = true;
+
+        const grid = document.getElementById("treasureGrid");
+        if (grid && !grid.children.length) {
+          const message = document.createElement("p");
+          message.className = "startup-error";
+          message.setAttribute("role", "alert");
+          message.textContent = "The tracker could not finish loading. Refresh the page to try again.";
+          grid.appendChild(message);
+        }
+      };
+
+      window.addEventListener("error", revealApp, { once: true });
+      window.addEventListener("unhandledrejection", revealApp, { once: true });
+      window.setTimeout(revealApp, 8000);
+    })();
+  </script>
   <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+          console.warn("Offline support could not be enabled:", error);
+        });
+      });
+    }
+  </script>
 </body>
 </html>

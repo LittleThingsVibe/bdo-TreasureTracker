@@ -57,6 +57,12 @@ body.is-loading {
   overflow: hidden;
 }
 
+body.modal-open,
+body.dialog-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body.body-visual-ready {
   background:
     linear-gradient(180deg, rgba(4, 10, 19, 0.82), rgba(4, 10, 19, 0.95)),
@@ -126,6 +132,25 @@ body::after {
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.startup-error {
+  width: min(680px, 100%);
+  margin: 8px auto 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(245, 199, 107, 0.28);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    rgba(8, 16, 29, 0.94);
+  color: #fff3cf;
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.28),
+    0 0 20px rgba(245, 199, 107, 0.07);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .container {
@@ -407,7 +432,7 @@ body::after {
 }
 
 .treasure-nostos.panel-visual-ready {
-  --panel-art: url("images/nostos-background.png");
+  --panel-art: url("images/nostos-background.webp");
 }
 
 .panel-top {
@@ -528,7 +553,8 @@ body::after {
   font-size: 0.68rem;
 }
 
-.panel-heading {
+.panel-heading,
+.panel-title {
   display: block;
   margin: 0;
   font-size: 1.26rem;
@@ -1224,6 +1250,7 @@ body::after {
   width: min(760px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
   overflow: auto;
+  overscroll-behavior: contain;
   border-radius: 22px;
   border: 1px solid rgba(245, 199, 107, 0.18);
   background:
@@ -1608,6 +1635,12 @@ body::after {
   filter: drop-shadow(0 0 4px rgba(255, 200, 120, 0.4));
 }
 
+.floating-action-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .floating-action-text {
   display: inline-flex;
   align-items: center;
@@ -1689,6 +1722,7 @@ body::after {
   width: min(920px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
   overflow: auto;
+  overscroll-behavior: contain;
   border-radius: 22px;
   border: 1px solid rgba(245, 199, 107, 0.18);
   background:
@@ -2222,8 +2256,9 @@ body::after {
   min-height: 96px;
   padding: 14px 16px;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
 }
 
 .treasure-krogdalo .piece-title {
@@ -2231,6 +2266,7 @@ body::after {
   min-height: auto;
   align-items: center;
   gap: 10px;
+  width: 100%;
 }
 
 .treasure-krogdalo .piece-name {
@@ -2252,6 +2288,10 @@ body::after {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .startup-loader-video {
+    display: none;
   }
 }
 
@@ -2275,6 +2315,7 @@ body::after {
   .container {
     width: min(100%, calc(100% - 16px));
     margin: 16px auto 28px;
+    padding-bottom: calc(116px + env(safe-area-inset-bottom));
   }
 
   .page-header {
@@ -2477,8 +2518,8 @@ body::after {
   }
 
   .floating-actions {
-    right: 12px;
-    bottom: 12px;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
     gap: 8px;
   }
 
@@ -2498,6 +2539,10 @@ body::after {
 }
 
 @media (max-width: 560px) {
+  .container {
+    padding-bottom: 0;
+  }
+
   .panel-title-group {
     width: 100%;
   }
@@ -2530,7 +2575,8 @@ body::after {
     width: 100%;
   }
 
-  .panel-top h2 {
+  .panel-heading,
+  .panel-title {
     font-size: 1.08rem;
   }
 
@@ -2586,20 +2632,171 @@ body::after {
   }
 
   .floating-action-text {
-    display: none;
+    display: inline-flex;
+    max-width: none;
+  }
+
+  .floating-actions {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    z-index: 1;
+    width: calc(100% - 16px);
+    margin: 0 auto calc(20px + env(safe-area-inset-bottom));
+    flex-direction: column;
+    align-items: stretch;
+    pointer-events: auto;
   }
 
   .floating-action-btn {
-    width: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
     justify-content: center;
-    padding: 0;
-    border-radius: 50%;
+    padding: 11px 14px;
+    border-radius: 16px;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
   }
 
   .floating-action-icon {
     width: 20px;
     height: 20px;
+  }
+}
+
+@media (max-width: 760px), (any-pointer: coarse) {
+  .checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    margin: 0;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+  }
+
+  .checkbox::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    transform: translate(-50%, -50%);
+    transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .checkbox::after {
+    content: "";
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    width: 6px;
+    height: 11px;
+    border-right: 2px solid #081220;
+    border-bottom: 2px solid #081220;
+    opacity: 0;
+    transform: translate(-50%, -56%) rotate(45deg);
+  }
+
+  .checkbox:checked::before {
+    border-color: var(--gold);
+    background: var(--gold);
+    box-shadow: 0 0 14px rgba(245, 199, 107, 0.16);
+  }
+
+  .checkbox:checked::after {
+    opacity: 1;
+  }
+
+  .checkbox:focus-visible {
+    outline: 2px solid rgba(245, 199, 107, 0.76);
+    outline-offset: -5px;
+  }
+
+  .checkbox:disabled {
+    cursor: default;
+    opacity: 0.78;
+  }
+
+  .help {
+    position: relative;
+    isolation: isolate;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border-color: transparent;
+    background: transparent;
+    font-size: 12px;
+  }
+
+  .help::before {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    z-index: -1;
+    border: 1px solid rgba(245, 199, 107, 0.24);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.018);
+    transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .help:hover,
+  .help.is-active {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .help:hover::before {
+    border-color: rgba(245, 199, 107, 0.34);
+    background: rgba(245, 199, 107, 0.08);
+    box-shadow: 0 0 14px rgba(245, 199, 107, 0.08);
+  }
+
+  .help.is-active::before {
+    border-color: rgba(245, 199, 107, 0.42);
+    background: rgba(245, 199, 107, 0.12);
+    box-shadow:
+      0 0 0 1px rgba(245, 199, 107, 0.1),
+      0 0 18px rgba(245, 199, 107, 0.16);
+  }
+
+  .piece-title {
+    min-height: 44px;
+  }
+
+  .piece-title .piece-name {
+    min-width: 0;
+    flex: 1 1 140px;
+    overflow-wrap: anywhere;
+  }
+
+  .pity-row,
+  .material-progress-row,
+  .lifeskill-progress-row {
+    row-gap: 4px;
+  }
+}
+
+@media (forced-colors: active) {
+  .checkbox {
+    appearance: auto;
+    -webkit-appearance: auto;
+  }
+
+  .checkbox::before,
+  .checkbox::after {
+    content: none;
   }
 }
